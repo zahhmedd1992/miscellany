@@ -111,6 +111,21 @@ export class Shell {
         undoable: false,
         describe: 'Redo the change that was just undone.',
         run: (a, ctx) => ctx.shell.redo(),
+      })
+      .define('view.api', {
+        title: 'Show API', group: 'View', glyph: '⚯',
+        describe: 'Show the HTTP routes and AI tool definitions generated from this command list.',
+        run: (a, ctx) => showApi(ctx.shell.reg),
+      })
+      .define('help.functions', {
+        title: 'Function list', group: 'Help', glyph: '?',
+        describe: 'List every formula function this document understands.',
+        // Formulas are core, not a spreadsheet feature — a slide's text box
+        // uses the same engine, so the same list belongs to both.
+        run: async () => {
+          const { FUNCTION_NAMES } = await import('./functions.js');
+          alert(`${FUNCTION_NAMES.length} functions:\n\n` + FUNCTION_NAMES.join('  '));
+        },
       });
   }
 
@@ -248,6 +263,21 @@ export class Shell {
     this.stage.innerHTML = '';
     this.surfaces.clear();
 
+    /* A canvas surface has to be told its size in device pixels, and the
+     * window is not what changes it — the SHELL is. Mounting a second pane
+     * halves the first one's width without any window resize firing, so a
+     * grid sized while it was full width kept a 3200px backing store in an
+     * 800px box and drew everything at half scale.
+     *
+     * The shell owns the layout, so the shell owns the observer. */
+    if (this._ro) this._ro.disconnect();
+    this._ro = new ResizeObserver((entries) => {
+      for (const e of entries) {
+        const s = this.surfaces.get(e.target.dataset.app);
+        if (s && s.resize) s.resize();
+      }
+    });
+
     for (const id of this.layout) {
       const a = this.apps.get(id);
       if (!a) throw new Error(`no such app: ${id}`);
@@ -262,6 +292,8 @@ export class Shell {
 
       const surface = a.mount(this._host(id, body, hd));
       this.surfaces.set(id, surface);
+      body.dataset.app = id;
+      this._ro.observe(body);
     }
     this.setFocus(this.layout[0]);
     this.renderTabs();
@@ -483,8 +515,18 @@ export class Shell {
     this._dirtyTimer = setTimeout(() => this.save(false), 900);
   }
 
-  /** Apps call this when they take ownership of a real file, and when they let go. */
-  setAutosave(on) { this._autosave = !!on; }
+  /** Apps call this when they take ownership of a real file, and when they let go.
+   *
+   * Clearing the note matters: leaving "saved automatically" on screen while
+   * an unsaved 5 MB workbook is open is an indicator that lies, and a save
+   * indicator that lies is worse than none. */
+  setAutosave(on) {
+    this._autosave = !!on;
+    if (!this._autosave) {
+      clearTimeout(this._dirtyTimer);
+      this.setStatusNote('', false);
+    }
+  }
 
   save(explicit) {
     if (!this.storageKey) return;
@@ -513,6 +555,38 @@ export class Shell {
       return true;
     } catch { return false; }
   }
+}
+
+/* ---- the API viewer: proof the projection is real, not a diagram ------- */
+
+function showApi(reg) {
+  const routes = reg.httpRoutes();
+  const mcp = reg.toMCP();
+  const w = window.open('', '_blank', 'width=860,height=760');
+  w.document.write(`<!doctype html><meta charset="utf-8"><title>Generated API</title>
+  <style>
+    body{font:13px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:0;padding:2rem;background:#FBF8F2;color:#211C16}
+    h1{font-size:1.15rem;margin:0 0 .3rem}
+    p.s{color:#6C6356;margin:0 0 1.5rem;max-width:44rem;font-size:.85rem}
+    h2{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:#9A3B1B;margin:1.8rem 0 .5rem}
+    pre{background:#231E17;color:#EDE6D8;padding:1rem;border-radius:4px;overflow-x:auto;font-size:11.5px;line-height:1.55}
+    table{border-collapse:collapse;width:100%;font-size:12px;background:#fff;border:1px solid #E3E0DA;border-radius:4px}
+    th{text-align:left;font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:#6C6356;padding:.5rem .7rem;border-bottom:1px solid #CFCAC1;background:#F7F5F1}
+    td{padding:.45rem .7rem;border-bottom:1px solid #E3E0DA;font-family:ui-monospace,Consolas,monospace;font-size:11px}
+    td.d{font-family:inherit;font-size:12px;color:#4A4338}
+  </style>
+  <h1>Generated from the command registry</h1>
+  <p class="s">Nothing below was written by hand. Every route and every AI tool definition is a
+  projection of the same ${reg.all().length} command declarations that produce the toolbar, the
+  keyboard shortcuts and the Ctrl+K palette. Add a command and all five surfaces gain it at once —
+  which is why they cannot drift apart.</p>
+  <h2>HTTP routes</h2>
+  <table><tr><th>Method</th><th>Path</th><th>What it does</th></tr>
+  ${routes.map((r) => `<tr><td>${r.method}</td><td>${r.path}</td><td class="d">${r.describe}</td></tr>`).join('')}
+  </table>
+  <h2>MCP tool definitions — what an AI assistant sees</h2>
+  <pre>${JSON.stringify(mcp, null, 2).replace(/</g, '&lt;')}</pre>`);
+  w.document.close();
 }
 
 /* ---- a colour picker, because two apps needed the same one ------------- */

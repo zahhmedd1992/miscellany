@@ -7,7 +7,10 @@
  *
  * Output: dist/
  *   index.html      the front door
- *   sheet/          the app, byte-identical to src/
+ *   app/            every app, byte-identical to src/
+ *                     app/index.html    Sheet
+ *                     app/deck.html     Deck
+ *                     app/compose.html  both, over one document
  */
 
 import fs from 'node:fs';
@@ -29,7 +32,7 @@ function copyDir(from, to) {
 fs.rmSync(DIST, { recursive: true, force: true });
 fs.mkdirSync(DIST, { recursive: true });
 fs.copyFileSync(path.join(ROOT, 'site', 'index.html'), path.join(DIST, 'index.html'));
-copyDir(path.join(ROOT, 'src'), path.join(DIST, 'sheet'));
+copyDir(path.join(ROOT, 'src'), path.join(DIST, 'app'));
 
 /* ---- verify the output is self-contained ---- */
 
@@ -82,7 +85,7 @@ const bytes = files.reduce((a, f) => a + fs.statSync(f).size, 0);
 
 console.log('');
 console.log(`  dist/         ${files.length} files, ${(bytes / 1024).toFixed(0)} KB`);
-console.log(`  entry points  /index.html  and  /sheet/index.html`);
+console.log(`  entry points  /index.html · /app/index.html · /app/deck.html · /app/compose.html`);
 console.log('');
 if (problems.length) {
   for (const p of problems) console.log('  x ' + p);

@@ -93,7 +93,10 @@
   font-size: .68rem; letter-spacing: .1em; text-transform: uppercase;
   color: var(--muted); font-weight: 700;
 }
-/* Only mark the focused pane when there is more than one to choose between. */
+/* A single pane needs no label — the title bar already says which app this
+ * is, and a strip that repeats it costs a row of the document. The header
+ * earns its space only when there are two panes to tell apart. */
+.gr-stage > .gr-pane:only-child > .gr-pane-hd { display: none; }
 .gr-stage > .gr-pane:not(:only-child).on .gr-pane-hd {
   color: var(--accent); box-shadow: inset 0 2px 0 var(--accent);
 }

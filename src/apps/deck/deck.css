@@ -1,0 +1,30 @@
+/* Deck's own surface: the slide canvas, the in-place text editor and the
+ * slide strip. The chrome around it belongs to the shell. */
+
+/* height must be EXPLICIT. A canvas is a replaced element, so `height: auto`
+ * with top and bottom both set does not stretch to fill the way a div does —
+ * it falls back to the intrinsic ratio of its width/height attributes. The
+ * canvas sat 400px tall in a 773px pane and the slide floated in the top
+ * half, with the backing store perfectly matching a box that was wrong. */
+.deck-canvas {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 34px;
+  width: 100%; height: calc(100% - 34px);
+  display: block; outline: none;
+}
+.deck-editor {
+  position: absolute; display: none; z-index: 5;
+  border: 2px solid #9A3B1B; outline: none; padding: 0 6px;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: #fff; color: #211C16;
+}
+.deck-strip {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 34px;
+  display: flex; align-items: center; gap: .3rem; padding: 0 .6rem;
+  background: #F7F5F1; border-top: 1px solid #E3E0DA; overflow-x: auto;
+}
+.deck-sbtn {
+  flex: none; width: 1.7rem; height: 1.4rem;
+  background: #fff; border: 1px solid #CFCAC1; border-radius: 3px;
+  font: inherit; font-size: .72rem; color: #6C6356; cursor: pointer;
+}
+.deck-sbtn.on { border-color: #9A3B1B; color: #9A3B1B; font-weight: 600; }
