@@ -147,7 +147,10 @@ export class Grid {
 
     this._bind();
     this.resize();
-    graph.onChange(() => this.draw());
+    // Keep the unsubscribe. A view that outlives its pane goes on redrawing
+    // a detached canvas forever — see Shell.setLayout, which tears surfaces
+    // down now instead of just dropping them.
+    this._off = graph.onChange(() => this.draw());
   }
 
   width(col) { return this.colW.get(col) || this.colW.get(-1) || CW; }
@@ -700,6 +703,9 @@ export class Grid {
     // a second pane halves the first one with no window event at all — and a
     // listener here would leak one per re-mount.
   }
+
+  /** Stop listening to the document. Called when the pane goes away. */
+  dispose() { if (this._off) { this._off(); this._off = null; } }
 
   handleKey(e) {
     const k = e.key;

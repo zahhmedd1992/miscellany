@@ -881,13 +881,17 @@ export const SheetApp = {
       e.clipboardData.setData(MIME, p.grain);
       e.preventDefault();
     };
-    document.addEventListener('copy', writeClip);
-    document.addEventListener('cut', writeClip);
-    document.addEventListener('paste', (e) => {
+    const readClip = (e) => {
       if (editing || isTextInput(document.activeElement)) return;
       e.preventDefault();
       applyPaste({ grain: e.clipboardData.getData(MIME), tsv: e.clipboardData.getData('text/plain') });
-    });
+    };
+    // Named, so teardown() can take them off again. These are on `document`,
+    // not on our canvas, because the browser only fires clipboard events at
+    // the document — which also means a forgotten surface keeps listening.
+    document.addEventListener('copy', writeClip);
+    document.addEventListener('cut', writeClip);
+    document.addEventListener('paste', readClip);
 
     function applyPaste(clip) {
       const target = { col: grid.sel.col, row: grid.sel.row };
@@ -947,6 +951,13 @@ export const SheetApp = {
       applyPaste,
 
       draw() { grid.draw(); },
+      /** Give back everything this surface registered outside its own pane. */
+      teardown() {
+        document.removeEventListener('copy', writeClip);
+        document.removeEventListener('cut', writeClip);
+        document.removeEventListener('paste', readClip);
+        grid.dispose();
+      },
       // The shell calls this whenever the pane changes size — see its
       // ResizeObserver. A canvas cannot work this out for itself.
       resize() { grid.resize(); },

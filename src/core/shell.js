@@ -259,6 +259,18 @@ export class Shell {
 
   /** Put one or more apps on screen, left to right. */
   setLayout(ids) {
+    /* Tear the old surfaces down before dropping them.
+     *
+     * Clicking Sheet -> Deck -> Sheet re-mounts, and a surface that is merely
+     * forgotten keeps everything it registered: Sheet added copy/cut/paste
+     * listeners to `document`, so after three toggles one Ctrl+C ran four
+     * handlers, each writing the clipboard from its OWN detached grid with a
+     * stale selection — last one wins, so the clipboard could quietly carry
+     * the wrong cells. Both views also kept a document subscription and went
+     * on repainting canvases that were no longer on screen. */
+    for (const s of this.surfaces.values()) {
+      if (s && s.teardown) s.teardown();
+    }
     this.layout = Array.isArray(ids) ? ids : [ids];
     this.stage.innerHTML = '';
     this.surfaces.clear();

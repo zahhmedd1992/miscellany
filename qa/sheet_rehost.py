@@ -232,6 +232,45 @@ try:
         t("two panes mount together",
           ev("document.querySelectorAll('.gr-pane').length"), 2)
         pg.screenshot(path=str(OUT / "05-both.png"))
+
+        print("\n  switching apps must not leave anything behind")
+        # Clicking Sheet/Deck/Both re-mounts. A surface that is merely
+        # forgotten keeps what it registered: Sheet's copy/cut/paste handlers
+        # live on `document`, so after three toggles one Ctrl+C ran four
+        # handlers, each writing the clipboard from its own DETACHED grid with
+        # a stale selection — last one wins, so the clipboard could quietly
+        # carry the wrong cells. Both views also kept repainting canvases that
+        # were no longer on screen.
+        ev("""(() => {
+          window.__net = {copy: 0, cut: 0, paste: 0};
+          const a = document.addEventListener.bind(document);
+          const r = document.removeEventListener.bind(document);
+          document.addEventListener = (t, ...x) => { if (t in __net) __net[t]++; return a(t, ...x); };
+          document.removeEventListener = (t, ...x) => { if (t in __net) __net[t]--; return r(t, ...x); };
+          return 1;
+        })()""")
+        for _ in range(3):
+            ev("miscellany.shell.setLayout(['deck'])")
+            pg.wait_for_timeout(150)
+            ev("miscellany.shell.setLayout(['sheet'])")
+            pg.wait_for_timeout(150)
+        net = json.loads(ev("JSON.stringify(__net)"))
+        t("no clipboard handlers left behind", [net["copy"], net["cut"], net["paste"]], [0, 0, 0])
+        t("no document subscriptions left behind",
+          ev("miscellany.doc._listeners.size"), 1)
+
+        # And the surviving grid still repaints a bounded number of times. Wrap
+        # the GRID, not the surface: a document edit repaints through the
+        # grid's own subscription, and it was that subscription which used to
+        # accumulate one detached copy per toggle.
+        ev("""(() => { window.__p = 0;
+          const g = miscellany.grid, o = g.draw.bind(g);
+          g.draw = (...a) => { __p++; return o(...a); }; return 1; })()""")
+        ev("miscellany.doc.set('main!Z40', '1')")
+        pg.wait_for_timeout(250)
+        paints = ev("__p")
+        t("one edit still means a bounded number of repaints", 1 <= paints <= 4, True)
+        print(f"       {paints} repaint(s) after 3 app toggles")
         b.close()
 finally:
     srv.shutdown()

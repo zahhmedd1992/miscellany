@@ -271,6 +271,16 @@ export const DeckApp = {
     return {
       view,
       draw() { view.draw(); renderStrip(); },
+      teardown() { view.dispose(); },
+      /** file.new empties the document, so the slide count derives back to 1.
+       *  Without this the view stayed on slide 3 and showed a blank canvas
+       *  above a strip whose only button was not highlighted. */
+      reset() {
+        view.slide = 0;
+        view.sel = null;
+        endEdit(false);
+        renderStrip();
+      },
       resize() { view.resize(); },
       focus() { cv.focus(); },
       capturing() { return editing !== null; },

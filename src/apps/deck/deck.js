@@ -167,8 +167,12 @@ export class DeckView {
 
     this._bind();
     this.resize();
-    doc.onChange(() => this.draw());
+    // Keep the unsubscribe — see Grid.dispose() for why.
+    this._off = doc.onChange(() => this.draw());
   }
+
+  /** Stop listening to the document. Called when the pane goes away. */
+  dispose() { if (this._off) { this._off(); this._off = null; } }
 
   /** Read from the document, so it survives a save. See slideCount(). */
   get slides() { return slideCount(this.doc, this.deck); }
