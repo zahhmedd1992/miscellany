@@ -823,3 +823,25 @@ and 3 new "Honest about what is missing" cards (no `.pptx`, Sheet charts read-on
 API generated but not served). Counts corrected to 76 functions / 679 assertions.
 Links stay `.html` on purpose — extensionless only works on Pages, `.html` works when
 you download the folder and open it locally.
+
+
+## Open sourced 2026-08-02
+
+**Repo: <https://github.com/zahhmedd1992/miscellany>** (public, MPL-2.0, `master`).
+`gh` is authed as `zahhmedd1992`. Push with `git push origin HEAD`.
+
+Zach looked at the live page and caught two things:
+
+1. **"remember this is supposed to be open source"** — and there was no way to get
+   the code. Worse, `LICENSE` was a 22-line *summary* whose text read *"if a copy of
+   the MPL was not distributed with this file..."* — and it was not. GitHub could not
+   detect the licence because the licence was not there. Fixed: full MPL-2.0 text in
+   `LICENSE`, plain-terms explanation moved to `NOTICE` which says LICENSE governs.
+2. **"you have too much commentary. get rid of the noise"** — front door cut from
+   ~900 words to **306**. Deleted: three-paragraph claim boxes, the four-part "why it
+   behaves differently" essay, the six-card grid. Kept: one sentence per app, the three
+   numbers, an honest missing-list. README likewise rewritten and de-staled
+   (58→76 functions, 617→679 assertions, capabilities now enforced not advisory).
+
+`npm test` now runs on a fresh clone (agreement.mjs needs the corpus, which is fetched
+via `corpus/build_corpus.py`, never redistributed).
