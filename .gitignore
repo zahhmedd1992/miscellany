@@ -11,3 +11,6 @@ corpus/files/
 # scratch output
 /tmp/
 *.tmp
+
+# build output — reproducible with: node tools/build-site.mjs
+dist/
