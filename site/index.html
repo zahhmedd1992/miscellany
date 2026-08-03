@@ -107,117 +107,54 @@ footer p{margin:0 0 .5rem}
   <div class="wrap">
     <p class="brand">Miscellany</p>
     <h1>Free software that <em>composes</em></h1>
-    <p class="stand">Tools that are actually finished, that work on your real files, and that fit together — because they are all built from the same material.</p>
+    <p class="stand">A spreadsheet and a slide deck that share one document — so a figure on a slide <em>is</em> the number in the sheet, not a copy of it.</p>
     <div class="cta">
       <a class="btn" href="./app/">Open Sheet</a>
       <a class="btn" href="./app/deck.html">Open Deck</a>
-      <a class="btn" href="./app/compose.html">Both, over one document</a>
-      <a class="btn ghost" href="#how">How it works</a>
+      <a class="btn" href="./app/compose.html">Both, one document</a>
+      <a class="btn ghost" href="https://github.com/zahhmedd1992/miscellany">Source on GitHub</a>
     </div>
-    <p class="note">No account. No install. Your file is read in the browser tab and never uploaded — the page makes no external requests at all.</p>
+    <p class="note">Free and open source, MPL-2.0. No account, no install, no dependencies. Your file is read in the browser tab &mdash; the page makes no external requests at all.</p>
   </div>
 </header>
 
 <section>
   <div class="wrap">
-    <h2>Sheet</h2>
-    <p>A spreadsheet that opens your Excel workbook, lets you work in it, and gives it back <strong>without wrecking it</strong>.</p>
-
-    <div class="claim">
-      <p><strong>Open a workbook with pivot tables, charts and macros we cannot even display. Change one cell. Save.</strong></p>
-      <p>You get back a file where every part we did not touch is <strong>byte-for-byte identical</strong> — the pivot definitions, the drawings, the conditional-format rules, all of it.</p>
-      <p>Every other tool routes your file through its own model and silently discards whatever that model does not cover. <em>“I opened it in the free one and it wrecked my file”</em> is the single biggest reason people never leave Excel. It does not happen here.</p>
-    </div>
-
     <div class="nums">
       <div class="num"><b>49&nbsp;/&nbsp;49</b><span>real workbooks round-trip byte-identical</span></div>
       <div class="num"><b>100.00%</b><span>agreement with Excel's own computed results</span></div>
       <div class="num"><b>0</b><span>dependencies, accounts, and bytes uploaded</span></div>
     </div>
 
-    <h3>What you can do today</h3>
-    <ul>
-      <li>Open and save <code>.xlsx</code> — formulas, formats, styles, merged cells, charts</li>
-      <li>Type, edit, copy, cut and paste — pasted formulas shift their references, and the plain values go to Excel or an email</li>
-      <li>Insert and delete rows and columns — every formula in the whole workbook follows</li>
-      <li>Bold, italic, colour, fills, borders, currency, percent, alignment</li>
-      <li>Undo and redo everything, including formatting</li>
-    </ul>
-  </div>
-</section>
+    <h2>Sheet</h2>
+    <p>Opens your Excel workbook, lets you work in it, and gives it back <strong>without wrecking it</strong>. Change one cell in a file full of pivot tables and macros we cannot even display, and every part we did not touch comes back byte-for-byte.</p>
 
-<section>
-  <div class="wrap">
     <h2>Deck</h2>
-    <p>Slides where a number on the slide <strong>is</strong> the number in the sheet — not a copy of it that was true last Tuesday.</p>
+    <p>Slides whose numbers and charts are bound to cells. Edit the sheet and the bar grows, the axis rescales, the percentage recomputes &mdash; with no synchronisation code, because a slide object and a cell are the same kind of thing.</p>
 
-    <div class="claim">
-      <p><strong>Put a chart and a headline figure on a slide, then change a cell in the spreadsheet next to it.</strong></p>
-      <p>The bar grows, the axis rescales, the percentage recomputes and the sentence re-typesets — with <strong>no synchronisation code anywhere</strong>, because a slide object and a cell are the same kind of thing depending on the same range.</p>
-      <p>Every deck you have ever made goes stale the moment the model changes, and someone has to notice. This one cannot: there is nothing to refresh.</p>
-    </div>
+    <h2>One document</h2>
+    <p>Both apps save to a single file that stores <strong>what you typed, never what was computed</strong>, one node per line so it diffs in Git. Nothing in the format can execute.</p>
+  </div>
+</section>
 
-    <h3>What you can do today</h3>
+<section>
+  <div class="wrap">
+    <h2>What is missing</h2>
     <ul>
-      <li>Text boxes that hold a value <em>or a formula</em> — <code>=SUM(main!B4:B6)</code> on a slide is a live figure</li>
-      <li>Bar, line, area and pie charts bound to a range of cells</li>
-      <li>Number formats on a slide, so a KPI reads <code>45.2%</code> and not <code>0.45200000001</code></li>
-      <li>Add, delete and reorder slides; nudge, resize and recolour objects</li>
+      <li>76 formula functions, not 500 &mdash; no pivot tables, macros or array formulas (preserved on save, not editable)</li>
+      <li>Deck cannot open or write PowerPoint files</li>
+      <li>Charts already in a workbook are read-only; in Deck you can create them</li>
+      <li>No accounts, no server, no sharing &mdash; deliberate</li>
+      <li>The HTTP and AI tool API is generated from the command list, but nothing serves it yet</li>
+      <li>Young. 679 automated checks plus four suites driving the real interface, but few users</li>
     </ul>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <h2>One document, not two apps that talk</h2>
-    <p>Sheet and Deck are usable on their own, or side by side over a single document — and that document saves to a single file.</p>
-
-    <div class="claim">
-      <p><strong>A Miscellany document is a graph of nodes, so it does not care which app made them.</strong> A file can hold a workbook and a deck together, and the app invented next year gets saved the day it exists.</p>
-      <p>It stores <strong>what you typed, never what was computed</strong>. A file that caches a result next to the formula that produced it can hold the two in disagreement; ours cannot, because it does not contain the answer. Opening a document recalculates it.</p>
-      <p>One node per line, so a document diffs, merges and blames in Git like source code. Human-readable. Nothing in the format can execute — there is no script, macro or external reference for it to become.</p>
-    </div>
-  </div>
-</section>
-
-<section id="how">
-  <div class="wrap">
-    <h2>Why it behaves differently</h2>
-
-    <h3>We never inherit someone else's model</h3>
-    <p>A library that reads spreadsheets has already decided what a spreadsheet <em>is</em> — and quietly drops whatever did not fit that decision. So we read the file format ourselves, straight from the published specification. That is slower to build and it is the entire reason your pivot tables survive.</p>
-
-    <h3>The numbers are checked against Excel's own answers</h3>
-    <p>A spreadsheet file stores the result Excel calculated next to every formula. That turns any real workbook into an exam we did not write. Across the test set — including a 353,000-node energy model with 39 sheets — we reproduce <strong>223,596 of 223,601</strong> results exactly, and match all 1,790 cells where Excel itself reports an error.</p>
-
-    <h3>Everything is made of the same thing</h3>
-    <p>Underneath is one dependency graph. A cell that adds up a column and a chart that plots one are the same kind of object depending on the same range — which is why a chart here shows what your sheet says <em>now</em>, not what it said when the file was last saved.</p>
-
-    <h3>The second app cost a fraction of the first</h3>
-    <p>That claim is easy to make and easy to check, so here it is checked: Deck is <strong>712 lines</strong>, of which the entire startup file is 34. It has undo, redo, a command palette, keyboard shortcuts, a generated toolbar and autosave — and implements none of them, because those belong to the shell every app is hosted in. Every button in both apps is generated from one list of <strong>54 commands</strong>, which is also what generates the API.</p>
-  </div>
-</section>
-
-<section>
-  <div class="wide">
-    <h2>Honest about what is missing</h2>
-    <p style="max-width:44rem">Software that overstates itself wastes your time twice — once when you try it and once when you have to undo it. So:</p>
-    <div class="grid">
-      <div class="card"><h3>Not a full Excel</h3><p>76 formula functions, not 500. No pivot tables, macros or array formulas — they are preserved perfectly on save, just not editable.</p></div>
-      <div class="card"><h3>Deck cannot open PowerPoint</h3><p>It reads and writes Miscellany documents. <code>.pptx</code> import and export is not built yet.</p></div>
-      <div class="card"><h3>Sheet's charts are read-only</h3><p>A chart already in your workbook renders from live data, but you cannot create one there yet. In Deck you can.</p></div>
-      <div class="card"><h3>No collaboration</h3><p>No accounts, no server, no sharing. That is a deliberate choice, not a gap we forgot.</p></div>
-      <div class="card"><h3>The API is generated, not served</h3><p>The HTTP routes and AI tool definitions are real and you can view them — but nothing answers them yet.</p></div>
-      <div class="card"><h3>Early</h3><p>A young project, tested hard — 679 automated checks plus four suites that drive the real interface in a real browser — but not yet used by many people.</p></div>
-    </div>
   </div>
 </section>
 
 <footer>
   <div class="wrap">
-    <p><strong>Miscellany</strong> — free, modular, and yours.</p>
-    <p>Licensed under the <a href="https://mozilla.org/MPL/2.0/">Mozilla Public License 2.0</a>: use it for anything, build anything on top of it, and if you improve our files, publish those improvements.</p>
-    <p style="margin-top:1rem"><a href="./app/">Open Sheet</a> · <a href="./app/deck.html">Open Deck</a> · <a href="./app/compose.html">Both, over one document</a> · <a href="https://opensignal.miscellany.io">Open Signal</a></p>
+    <p><strong>Miscellany</strong> &mdash; free, modular, and yours.</p>
+    <p><a href="https://github.com/zahhmedd1992/miscellany">Source</a> &middot; <a href="https://mozilla.org/MPL/2.0/">MPL-2.0</a> &middot; <a href="./app/">Sheet</a> &middot; <a href="./app/deck.html">Deck</a> &middot; <a href="./app/compose.html">Both</a> &middot; <a href="https://opensignal.miscellany.io">Open Signal</a></p>
   </div>
 </footer>
 
