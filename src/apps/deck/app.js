@@ -13,7 +13,8 @@
  * a workbook does not care that this node happens to be drawn as 84px type.
  */
 
-import { DeckView, objId, defineObject, OBJECT, slideId, catsId, SLIDE_W, SLIDE_H } from './deck.js';
+import { DeckView, objId, defineObject, OBJECT, slideId, catsId,
+         shiftSlides, SLIDE_W, SLIDE_H } from './deck.js';
 import { pickColour } from '../../core/shell.js';
 import { toText } from '../../core/value.js';
 
@@ -68,10 +69,11 @@ export const DeckApp = {
         describe: 'Add a slide after the current one.',
         run: (a, ctx) => {
           const v = view(ctx); if (!v) return;
-          v.slides++;
-          defineObject(ctx.doc, objId(v.slides - 1, 'title'),
+          const at = v.slide + 1;
+          shiftSlides(ctx.doc, at, +1, v.deck);       // make room in the middle
+          defineObject(ctx.doc, objId(at, 'title'),
             OBJECT.text(80, 70, 1120, 90, { size: 52, bold: true }), 'Untitled slide');
-          v.go(v.slides - 1);
+          v.go(at);
         },
       })
       .define('deck.slide.delete', {
@@ -79,11 +81,15 @@ export const DeckApp = {
         describe: 'Delete the current slide and everything on it.',
         run: (a, ctx) => {
           const v = view(ctx); if (!v || v.slides <= 1) return;
-          for (const { id } of v.objects()) { ctx.doc.set(id, ''); ctx.doc.set(catsId(id), ''); }
-          // Slides after this one keep their ids; only the count moves. Ids
-          // are opaque to the graph, so there is nothing else to renumber.
-          v.slides--;
-          v.go(Math.min(v.slide, v.slides - 1));
+          const at = v.slide;
+          for (const { id } of v.objects()) {
+            ctx.doc.set(id, ''); ctx.doc.setMeta(id, null);
+            ctx.doc.set(catsId(id), '');
+          }
+          // Everything after it moves down one. Lowering a counter instead
+          // left the last slide's objects stranded past the end of the deck.
+          shiftSlides(ctx.doc, at + 1, -1, v.deck);
+          v.go(Math.min(at, v.slides - 1));
         },
       })
       .define('deck.slide.next', {
@@ -203,7 +209,7 @@ export const DeckApp = {
     strip.className = 'deck-strip';
     host.el.appendChild(strip);
 
-    const view = new DeckView(cv, host.doc, { slides: 1 });
+    const view = new DeckView(cv, host.doc);   // slide count is derived
     let editing = null;
 
     const renderStrip = () => {

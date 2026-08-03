@@ -57,7 +57,6 @@ def(1, 'chart', chart(80, 200, 1120, 440, {
 /* ---- the two views ---- */
 shell.app(SheetApp).app(DeckApp);
 shell.mount(document.getElementById('root'), ['sheet', 'deck']);
-shell.surfaces.get('deck').view.slides = 2;
 
 shell.surfaces.get('sheet').grid.select(1, 3);
 shell.refresh();

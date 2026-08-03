@@ -89,6 +89,65 @@ try:
         pg.keyboard.press("Control+z")
         pg.wait_for_timeout(200)
 
+        print("\n  two edits are two undo steps, not one merged step")
+        # commitEdit and the formula bar both journal through host.batch().
+        # One typed cell proves batch() runs; it does not prove consecutive
+        # edits stay separate.
+        ev("miscellany.grid.select(1, 4)")
+        pg.wait_for_timeout(80)
+        pg.keyboard.type("111"); pg.keyboard.press("Enter"); pg.wait_for_timeout(200)
+        pg.keyboard.type("222"); pg.keyboard.press("Enter"); pg.wait_for_timeout(200)
+        t("both cells took their values",
+          [ev("miscellany.doc.raw('main!B5')"), ev("miscellany.doc.raw('main!B6')")],
+          ["111", "222"])
+        pg.keyboard.press("Control+z"); pg.wait_for_timeout(200)
+        t("one undo reverts only the second",
+          [ev("miscellany.doc.raw('main!B5')"), ev("miscellany.doc.raw('main!B6')")],
+          ["111", "155900"])
+        pg.keyboard.press("Control+z"); pg.wait_for_timeout(200)
+        t("the second undo reverts the first",
+          [ev("miscellany.doc.raw('main!B5')"), ev("miscellany.doc.raw('main!B6')")],
+          ["141250", "155900"])
+
+        print("\n  paste is one undo step, and a cut restores both ends")
+        # applyPaste journals through host.batch(), not through run(), because
+        # the browser only releases the clipboard to a real paste event.
+        # paste lands on the SELECTION, and two Enters ago the caret moved on
+        ev("miscellany.grid.select(1, 4)")
+        pg.wait_for_timeout(80)
+        ev("""miscellany.shell.surfaces.get('sheet')
+                .applyPaste({tsv: '7\\t8'})""")
+        pg.wait_for_timeout(250)
+        t("paste overwrote two cells",
+          [ev("miscellany.doc.raw('main!B5')"), ev("miscellany.doc.raw('main!C5')")],
+          ["7", "8"])
+        pg.keyboard.press("Control+z"); pg.wait_for_timeout(200)
+        t("one undo restores both overwritten cells",
+          [ev("miscellany.doc.raw('main!B5')"), ev("miscellany.doc.raw('main!C5')")],
+          ["141250", "78900"])
+
+        # cut A4:B4, paste it at A20 — the source clears and the target fills
+        # in the SAME step, so one undo has to put both back.
+        ev("""(() => {
+          const g = miscellany.grid;
+          g.anchor = {col: 0, row: 3}; g.sel = {col: 1, row: 3};
+          miscellany.shell.surfaces.get('sheet').clipboard('cut');
+          g.anchor = g.sel = {col: 0, row: 19};
+        })()""")
+        pg.wait_for_timeout(200)
+        ev("""miscellany.shell.surfaces.get('sheet')
+                .applyPaste({tsv: 'July\\t128400'})""")
+        pg.wait_for_timeout(250)
+        t("the cut source cleared",
+          [ev("miscellany.doc.raw('main!A4')"), ev("miscellany.doc.raw('main!B4')")],
+          ["", ""])
+        t("and the target filled", ev("miscellany.doc.raw('main!A20')"), "July")
+        pg.keyboard.press("Control+z"); pg.wait_for_timeout(250)
+        t("one undo restores the cut source",
+          [ev("miscellany.doc.raw('main!A4')"), ev("miscellany.doc.raw('main!B4')")],
+          ["July", "128400"])
+        t("and clears the paste target", ev("miscellany.doc.raw('main!A20')"), "")
+
         print("\n  formatting, and formatting is undoable now")
         # Enter moved the selection down a row, so name the cell explicitly
         # rather than assume where the caret ended up.
