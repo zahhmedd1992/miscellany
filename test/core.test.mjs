@@ -191,5 +191,61 @@ console.log('  all green\n');
   })(), '0.020000000000000018');
 }
 
+/* ---- a change listener may not change the document ---------------------
+ *
+ * Recalculation notifies listeners. A listener that writes re-enters
+ * recalculation, which notifies again. Deck's first chart renderer resolved a
+ * range by writing a scratch node WHILE PAINTING, and one keystroke became
+ * 496 nested repaints and a stack overflow — with an empty console, because
+ * an exhausted stack has no room to run an error handler. It looked like
+ * nothing was wrong right up until the screen went blank.
+ *
+ * The rule that prevents it is worth more than the fix: if something must
+ * update when a value changes, it is a NODE. */
+{
+  const gg = makeGraph();
+
+  /* A literal's value is assigned before recalc runs, so recalc compared the
+   * new value against itself and reported "nothing changed". Typing into a
+   * cell nothing depends on notified NO listener. Sheet never noticed because
+   * it repaints itself; a second view of the same document would simply not
+   * have updated — and that is the product. */
+  let heard = [];
+  const offL = gg.onChange((ids) => heard.push(...ids));
+  gg.set('main!Z9', '42');                    // isolated literal, no dependents
+  t('an isolated literal notifies', heard, ['main!Z9']);
+  heard = [];
+  gg.set('main!Z9', '42');                    // same input
+  t('an unchanged write is silent', heard.length, 0);
+  heard = [];
+  gg.set('main!Z9', '');
+  t('clearing notifies', heard, ['main!Z9']);
+  offL();
+
+  gg.set('main!A1', '1');
+  let caught = null;
+  const off = gg.onChange(() => {
+    try { gg.set('main!B1', '2'); } catch (e) { caught = e.message; }
+  });
+  gg.set('main!A1', '5');
+  off();
+  t('writing from a listener is refused', /read-only/.test(caught || ''), true);
+  t('the refusal names the fix', /node/i.test(caught || ''), true);
+  t('nothing was written', gg.raw('main!B1'), '');
+
+  // and the document is not left wedged by the refusal
+  gg.set('main!B1', '7');
+  t('document still writable afterwards', toText(gg.value('main!B1')), '7');
+
+  // a listener that throws for its own reasons must not wedge it either
+  const off2 = gg.onChange(() => { throw new Error('listener blew up'); });
+  let threw = false;
+  try { gg.set('main!A1', '9'); } catch { threw = true; }
+  off2();
+  t('a throwing listener propagates', threw, true);
+  gg.set('main!C1', '3');
+  t('and does not leave the document locked', toText(gg.value('main!C1')), '3');
+}
+
 console.log(`  (with formatting: ${pass} passed, ${fail} failed)`);
 if (fail) process.exit(1);

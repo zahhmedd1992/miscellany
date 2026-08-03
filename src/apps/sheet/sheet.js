@@ -16,55 +16,21 @@ import { formatGeneral } from '../../core/format.js';
 import { formatValue, BUILTIN } from '../../core/numfmt.js';
 import { drawChart } from './chartview.js';
 
-export const SHEET = 'main';
+/* A1 addressing and the document itself now live in core/ — Deck needed both,
+ * and a second app importing from the first is the signal that a thing has
+ * stopped being one app's business. Re-exported so nothing below changes. */
+/* IMPORT then re-export. `export ... from` alone re-exports the names without
+ * binding them in THIS module's scope, so Grid.draw() below would have no
+ * cellId — and the Node tests cannot catch that, because they never call a
+ * method that needs a canvas. */
+import { SHEET, cellId, expand, sheetOfId } from '../../core/a1.js';
+import { createDocument } from '../../core/document.js';
+
+export { SHEET, cellId, expand, sheetOfId };
+export { createDocument as makeGraph } from '../../core/document.js';
+void createDocument;
 export const COLS = 40;
 export const ROWS = 500;
-
-export const cellId = (col, row, sheet = SHEET) => `${sheet}!${indexToCol(col)}${row + 1}`;
-
-/* ---- the reference expander ------------------------------------------
- * This is Sheet's answer to "what node ids does this reference name?".
- * The graph asks; it never assumes. */
-export function expand(ref, ctx = {}) {
-  const sheet = ref.sheet || ctx.sheet || SHEET;
-  if (ref.t === 'ref') {
-    const ids = [cellId(ref.col, ref.row, sheet)];
-    ids.shape = { rows: 1, cols: 1 };
-    return ids;
-  }
-  if (ref.t === 'range') {
-    const a = ref.a, b = ref.b;
-    if (!a || !b || a.t !== 'ref' || b.t !== 'ref') return [];
-    const c0 = Math.min(a.col, b.col), c1 = Math.max(a.col, b.col);
-    const r0 = Math.min(a.row, b.row), r1 = Math.max(a.row, b.row);
-    const sh = a.sheet || b.sheet || sheet;
-    const ids = [];
-    for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) ids.push(cellId(c, r, sh));
-    ids.shape = { rows: r1 - r0 + 1, cols: c1 - c0 + 1 };
-    return ids;
-  }
-  return [];
-}
-
-/** The sheet a node id belongs to: "Land-Based Wind!S28" -> "Land-Based Wind".
- *  Ids without a '!' (a chart node, say) have no sheet. */
-export function sheetOfId(id) {
-  const i = String(id).indexOf('!');
-  return i < 0 ? SHEET : id.slice(0, i);
-}
-
-export function makeGraph() {
-  return new Graph({
-    parse: (src, ctx) => parse(src, ctx),
-    // The context comes from the CELL BEING EVALUATED, not a constant. Pinning
-    // it to one sheet makes every bare reference on every other sheet resolve
-    // to that sheet — 18,953 root disagreements in one corpus workbook, and
-    // the single largest cause of a 19% agreement rate with Excel.
-    evaluate: (ast, api) => evaluate(ast, api, api.ctx || { sheet: SHEET }),
-    expand,
-    contextOf: (id) => ({ sheet: sheetOfId(id) }),
-  });
-}
 
 /* =======================================================================
  * GRID VIEW

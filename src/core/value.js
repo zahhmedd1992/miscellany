@@ -26,6 +26,13 @@ export const BLANK = { k: 'blank' };
 
 export const V = {
   blank: () => BLANK,
+  /* A node whose value IS a range, not a scalar computed from one.
+   *
+   * A chart on a slide is exactly this: it depends on B4:B16 and its value is
+   * those cells, not their sum. Without it the graph wires the dependency
+   * correctly and then has nothing to hand the renderer — which is precisely
+   * what building the second app turned up. */
+  range: (ids, values) => ({ k: 'range', ids, values, shape: ids.shape || null }),
   num:   (d) => ({ k: 'number', d: d instanceof Decimal ? d : Decimal.from(d) }),
   text:  (s) => ({ k: 'text', s: String(s) }),
   bool:  (b) => ({ k: 'bool', b: !!b }),
@@ -33,6 +40,7 @@ export const V = {
 };
 
 export const isErr   = (v) => v.k === 'error';
+export const isRange = (v) => v.k === 'range';
 export const isBlank = (v) => v.k === 'blank';
 export const isNum   = (v) => v.k === 'number';
 
@@ -67,6 +75,9 @@ export function toText(v) {
     case 'bool':   return v.b ? 'TRUE' : 'FALSE';
     case 'blank':  return '';
     case 'error':  return v.e;
+    // A range shown where a single value is expected reports its extent
+    // rather than pretending to be its first cell.
+    case 'range':  return v.ids ? `${v.ids.length} cells` : '';
   }
   return '';
 }

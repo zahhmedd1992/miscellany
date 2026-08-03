@@ -9,6 +9,7 @@
 
 import { Decimal } from './decimal.js';
 import { V, ERR, BLANK, isErr, isBlank, toNum, toText, toBool, compare } from './value.js';
+import { formatValue } from './numfmt.js';
 
 const ZERO = () => Decimal.zero();
 const ONE  = () => new Decimal(1n, 0);
@@ -339,6 +340,22 @@ export const FUNCTIONS = {
   UPPER: { call: ({ args }) => V.text(toText(args[0].scalar).toUpperCase()) },
   LOWER: { call: ({ args }) => V.text(toText(args[0].scalar).toLowerCase()) },
   TRIM:  { call: ({ args }) => V.text(toText(args[0].scalar).replace(/\s+/g, ' ').trim()) },
+  /* TEXT(value, format) — the format-code language, reachable from a formula.
+   *
+   * Core has carried the whole of numfmt.js since the first week and no
+   * formula could ever call it: formatting was something the VIEW did to a
+   * cell. A slide has no cells, so the second app had to ask for the number as
+   * text — and that is what exposed the gap. The engine was already written;
+   * only the door was missing. */
+  TEXT: { call: ({ args }) => {
+    if (args.length < 2) return V.err(ERR.VALUE);
+    const v = args[0].scalar;
+    if (isErr(v)) return v;
+    const f = args[1].scalar;
+    if (isErr(f)) return f;
+    return V.text(formatValue(v, toText(f)).text);
+  }},
+
   LEFT:  { call: ({ args }) => sub(args, 'left') },
   RIGHT: { call: ({ args }) => sub(args, 'right') },
   MID: { call: ({ args }) => {
