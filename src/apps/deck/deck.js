@@ -66,7 +66,7 @@ export function defineObject(doc, id, object, formula) {
             : object.ref ? '=' + object.ref
             : '';
   doc.set(id, raw);
-  doc.node(id, true).meta = { object };
+  doc.setMeta(id, { object });
   // the second range, bound the same way as the first
   if (object.cats) doc.set(catsId(id), '=' + object.cats);
   return id;

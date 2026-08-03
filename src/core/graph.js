@@ -95,11 +95,7 @@ export class Graph {
      * So the invariant is enforced here, where it is cheap and loud. If
      * something must update when a value changes, it is a NODE, not a
      * side-effect in a listener. That is the whole design. */
-    if (this._emitting) {
-      throw new Error(
-        `[grain] a change listener tried to write ${id}. Listeners are ` +
-        `read-only — model derived state as a node so the scheduler owns it.`);
-    }
+    this._assertWritable(id);
     const n = this.node(id, true);
     if (n.raw === raw) return new Set();
     /* A literal's value is assigned below, BEFORE recalculation runs — so by
@@ -136,6 +132,33 @@ export class Graph {
     // change is detected by recalc, which evaluates it against its old value
     const seed = !n.ast && !sameValue(wasValue, n.value) ? new Set([id]) : null;
     return this.recalc(seed);
+  }
+
+  /**
+   * Set a node's meta — a cell's formatting, a slide object's geometry.
+   *
+   * Meta must go through the graph for one reason: the undo journal. An app
+   * that assigns `node.meta` directly changes the document without recording
+   * anything, so the journal comes back empty, the shell files no undo step,
+   * and Undo silently reverts the change BEFORE the one you meant. Both apps
+   * had this: bold on a cell and font size on a slide were both un-undoable,
+   * and neither failed loudly.
+   *
+   * Values are untouched — meta does not participate in recalculation.
+   */
+  setMeta(id, meta) {
+    this._assertWritable(`${id} (meta)`);
+    const n = this.node(id, true);
+    // three elements marks a meta entry; set() pushes two
+    if (this._journal) this._journal.push([id, n.raw, n.meta === undefined ? null : n.meta]);
+    n.meta = meta;
+    return n;
+  }
+
+  /** Merge fields into a node's meta, preserving the rest. */
+  patchMeta(id, fields) {
+    const n = this.node(id, true);
+    return this.setMeta(id, { ...(n.meta || {}) , ...fields });
   }
 
   /** Remove a node's content but keep its edges consistent. */
@@ -301,6 +324,11 @@ export class Graph {
   }
 
   loadJSON(data, ctx = {}) {
+    // loadJSON writes nodes directly rather than through set(), so it needs
+    // the same guard: otherwise a change listener could replace the whole
+    // document from inside a recalculation and the invariant set() enforces
+    // would only be half true.
+    this._assertWritable('the whole document');
     this.nodes.clear();
     this._dirty.clear();
     // Two passes: create every node first so edges can be wired without
@@ -322,7 +350,29 @@ export class Graph {
     }
     for (const n of this.nodes.values()) this._rewire(n, ctx);
     for (const id of this.nodes.keys()) this._markDirty(id);
-    return this.recalc();
+    const changed = this.recalc();
+
+    /* Opening a file replaces everything, but recalc only reports nodes whose
+     * computed value moved — so a document of nothing but literals reports
+     * NOTHING, and a view attached before the file was opened would never
+     * paint it. Tell listeners the truth: all of it is new.
+     *
+     * Built only when somebody is listening. A 741,000-cell workbook loaded
+     * headlessly (every test, every conversion) pays nothing for this. */
+    if (this._listeners.size) {
+      const all = new Set(this.nodes.keys());
+      this._emit(all);
+      return all;
+    }
+    return changed;
+  }
+
+  /** Mutation entry points share one guard so the rule cannot drift apart. */
+  _assertWritable(what) {
+    if (!this._emitting) return;
+    throw new Error(
+      `[grain] a change listener tried to write ${what}. Listeners are ` +
+      `read-only — model derived state as a node so the scheduler owns it.`);
   }
 }
 
