@@ -237,6 +237,29 @@ console.log('  all green\n');
   gg.set('main!B1', '7');
   t('document still writable afterwards', toText(gg.value('main!B1')), '7');
 
+  // loadJSON writes nodes directly rather than through set(), so it needs the
+  // same guard or the rule is only half enforced
+  let caught2 = null;
+  const off3 = gg.onChange(() => {
+    try { gg.loadJSON({ 'main!A1': '1' }); } catch (e) { caught2 = e.message; }
+  });
+  gg.set('main!A1', '11');
+  off3();
+  t('replacing the document from a listener is refused too',
+    /read-only/.test(caught2 || ''), true);
+
+  /* Opening a file must tell a view that was already attached. recalc only
+   * reports nodes whose computed value moved, so a document of pure literals
+   * reported nothing at all and a second view stayed blank. */
+  {
+    const g3 = makeGraph();
+    let told = null;
+    g3.onChange((ids) => { told = ids; });
+    g3.loadJSON({ 'main!A1': 'x', 'main!A2': '3' });   // literals only
+    t('opening a file notifies', told && told.size, 2);
+    t('and names what arrived', told && told.has('main!A2'), true);
+  }
+
   // a listener that throws for its own reasons must not wedge it either
   const off2 = gg.onChange(() => { throw new Error('listener blew up'); });
   let threw = false;

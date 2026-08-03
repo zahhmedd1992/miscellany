@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Deck — Miscellany</title>
+<link rel="stylesheet" href="./core/shell.css" />
+<style>
+/* Everything below styles Deck's own surface. The title bar, toolbar,
+   palette, status bar and colour picker are the shell's, and Deck neither
+   supplies nor restyles them — which is the point of having a shell. */
+html, body { height: 100%; margin: 0; }
+.deck-canvas { position: absolute; inset: 0 0 34px 0; width: 100%; display: block; outline: none; }
+.deck-editor {
+  position: absolute; display: none; z-index: 5;
+  border: 2px solid #9A3B1B; outline: none; background: #fff; color: #211C16;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding: 0 6px;
+}
+.deck-strip {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 34px;
+  display: flex; align-items: center; gap: .3rem; padding: 0 .6rem;
+  background: #F7F5F1; border-top: 1px solid #E3E0DA; overflow-x: auto;
+}
+.deck-sbtn {
+  flex: none; width: 1.7rem; height: 1.4rem; background: #fff;
+  border: 1px solid #CFCAC1; border-radius: 3px;
+  font: inherit; font-size: .72rem; color: #6C6356; cursor: pointer;
+}
+.deck-sbtn.on { border-color: #9A3B1B; color: #9A3B1B; font-weight: 600; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="module" src="./deck.js"></script>
+</body>
+</html>
