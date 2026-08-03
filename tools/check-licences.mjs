@@ -35,10 +35,13 @@ const FORBIDDEN = /\b(GPL|AGPL|LGPL|SSPL|BUSL|EUPL|CDDL|commercial|proprietary)\
  * the same category as `Math` — nobody ships it, nobody licenses it to us. */
 const BUILTIN = /^node:/;
 
-/* Remote URLs in HTML. Fonts are a deliberate, stated exception: they are a
- * network request, not code we redistribute. Anything else is a dependency
- * wearing a URL. */
-const ALLOWED_REMOTE = [/^https:\/\/fonts\.googleapis\.com\//, /^https:\/\/fonts\.gstatic\.com\//];
+/* Remote resources the app is allowed to fetch. Deliberately EMPTY.
+ *
+ * Google Fonts used to be here. It had to go: a tool whose whole claim is
+ * that your file never leaves your machine cannot fetch a stylesheet from
+ * Google on every load, and an installed copy has to work with no network.
+ * If something is ever added here it should be argued for in writing. */
+const ALLOWED_REMOTE = [];
 
 let problems = [];
 let checked = 0;
@@ -70,6 +73,11 @@ function walk(dir, out = []) {
   return out;
 }
 
+  // A hyperlink is navigation; a resource is a fetch. Only the second kind
+  // can break an offline copy or leak a request, so only the second kind is
+  // a problem. <a href="https://mozilla.org/MPL/2.0/"> is fine and correct.
+  const RESOURCE_RE = /<(?:link|script|img|iframe|source|video|audio)[^>]*?(?:href|src)\s*=\s*["'](https?:\/\/[^"']+)["']/gi;
+
 const IMPORT_RE = /(?:^|[\s;{(])(?:import|export)\s[^;]*?from\s*['"]([^'"]+)['"]|import\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
 const files = walk(path.join(ROOT, 'src')).concat(walk(path.join(ROOT, 'test')), walk(path.join(ROOT, 'tools')));
 
@@ -90,8 +98,9 @@ for (const f of files) {
     problems.push(`${rel}: BARE IMPORT "${spec}" — that is an external dependency`);
   }
 
-  // remote script/style/module URLs in HTML
-  for (const m of src.matchAll(/(?:src|href)\s*=\s*["'](https?:\/\/[^"']+)["']/g)) {
+  // Remote RESOURCES only. A hyperlink to a licence or a spec is navigation,
+  // not a dependency, and flagging it makes the gate cry wolf.
+  for (const m of src.matchAll(RESOURCE_RE)) {
     const url = m[1];
     if (ALLOWED_REMOTE.some((re) => re.test(url))) continue;
     problems.push(`${rel}: remote resource ${url}`);

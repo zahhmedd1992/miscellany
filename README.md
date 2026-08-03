@@ -6,13 +6,28 @@ Opens and saves real Excel files without wrecking them.
 ## Run it
 
 ```
-cd src
-python -m http.server 9195
+npm run serve          # or: python -m http.server 9195 --directory src
 ```
 Open <http://127.0.0.1:9195/index.html>
 
 ES modules need a server; `file://` will not work. **No build step, no npm install,
 no dependencies at all** — that is the point, not an accident.
+
+## Ship it
+
+```
+node tools/build-site.mjs      # -> dist/  (front door + app, 25 files, 289 KB)
+node tools/check-licences.mjs  # the dependency gate
+```
+
+`dist/` is plain static files. There is no bundler and no transform: the app ships
+exactly the source you can read in `src/`. The build step only copies and then *verifies*
+— no bare imports, no remote resources, every module present.
+
+**The app makes zero external requests.** Verified in a browser across a whole session:
+load the front door, open the app, open a real workbook — nothing leaves 127.0.0.1. The
+system font stack is deliberate; a tool whose whole claim is that your file never leaves
+your machine cannot fetch a stylesheet from Google to say so.
 
 ## Test it
 
@@ -29,7 +44,7 @@ node test/agreement.mjs             # grades every formula against Excel's own c
 python corpus/build_corpus.py       # re-hashes the corpus against its lock
 ```
 
-617 assertions. See `CORPUS.md` for what the corpus is and why it is locked.
+617 assertions (`npm test`). See `CORPUS.md` for what the corpus is and why it is locked.
 
 The edited outputs are additionally validated by **Python's `zipfile`** — an
 implementation that is not ours — which verifies every entry's CRC and the central

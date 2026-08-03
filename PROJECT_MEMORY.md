@@ -589,6 +589,42 @@ just below still has no fill and size 11.
 UI: a 20-swatch preset palette rather than a full colour wheel — almost every real
 formatting choice is one of these, and the wheel is a bigger UI than the value it adds.
 
+## Session 13 (08.02) — DISTRIBUTION: repo, licence gate, front door
+
+Repo initialised (46 files, `corpus/files/` excluded — reproducible from the committed
+`corpus.json` lock). **LICENSE = MPL-2.0** per D1, with a plain-terms preamble. `package.json`
+with `npm test` running all eight suites plus the agreement gate.
+
+**`tools/check-licences.mjs` — the gate I promised three sessions ago and skipped.**
+Two checks, and the second is the one that holds the line: (1) every declared dependency's
+licence is on the allowlist; (2) **no source file imports a bare specifier**. A dependency
+can arrive without touching package.json — a CDN URL, a vendored file, an import map — so
+a gate that only reads package.json would not see it.
+
+### The gate caught a real contradiction on its first run
+
+The app loaded **Google Fonts**. So a tool whose entire pitch is "your file never leaves
+your machine" was making a request to Google on every load, would not work offline, and
+called itself zero-dependency. Removed — system font stack throughout. Verified in a
+browser: **zero external requests** across landing page -> app -> opening a real workbook.
+`ALLOWED_REMOTE` is now deliberately empty with a note that additions need an argument.
+
+Also refined: a hyperlink is navigation, a resource is a fetch. The first version flagged
+`<a href="https://mozilla.org/MPL/2.0/">` as a dependency — a gate that cries wolf gets
+ignored. Now only `<link>/<script>/<img>/<iframe>` URLs count.
+
+### Built
+
+`site/index.html` — the front door, in the Miscellany warm-editorial identity, with an
+"Honest about what is missing" section (75 functions not 500, charts read-only, no
+collaboration, early). `tools/build-site.mjs` -> `dist/` (25 files, 289 KB): copies, then
+VERIFIES self-containment rather than transforming anything.
+
+### NOT DONE — needs Zach's go-ahead
+
+Deploying to the live miscellany.io would replace the Open Signal front door that is there
+now. That is outward-facing and his call, so `dist/` is built and verified but not pushed.
+
 ## Open threads / next actions
 - [ ] Cell formatting: `Node.meta` exists in the model, the renderer ignores it.
 - [ ] Formula *printer* (parser exists) — prerequisite for insert/delete row+column.
