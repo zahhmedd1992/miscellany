@@ -1,0 +1,13 @@
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+
+# The corpus is 15MB of third-party workbooks. It is reproducible from
+# corpus/corpus.json, which IS committed — that file is the lock, and
+# build_corpus.py re-fetches and re-verifies every hash.
+corpus/files/
+
+# scratch output
+/tmp/
+*.tmp
