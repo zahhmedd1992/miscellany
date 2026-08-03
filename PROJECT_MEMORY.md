@@ -701,3 +701,69 @@ the whole composition.
 - [ ] Deploying `dist/` to live miscellany.io (would replace Open Signal front door) — Zach's call.
 - [ ] Tauri desktop build + SignPath signing.
 - [ ] Deck cannot open or save .pptx yet; a deck lives in localStorage or inside a workbook.
+
+## Correction, same day: the shell was still built the piecemeal way
+
+Zach pushed back again after the shell landed, and he was right. I read
+"piecemeal" as "you only built one app" and answered by EXTRACTING a shell out
+of app.js. But extraction-from-what-exists *is* the piecemeal method. I had
+even written the doctrine down in `document.js` — *"an abstraction that
+survives two real consumers is real, one designed in advance is a guess"* —
+which is the piecemeal rule stated as a principle, and the advisor endorsed it.
+
+It is the same sentence he used about ExcelJS in his second message: **if you
+start from a concluded analysis, your ceiling is that analysis.** Last time the
+concluded analysis was someone else's library. This time it was my own app.js.
+
+**The checkable consequence.** app.js's answer to "what is a document?" is "an
+.xlsx", and the shell inherited it:
+
+- `compose.html` — the flagship "one document, two views" page — had **no
+  storageKey**, so Ctrl+S silently did nothing and said nothing.
+- Sheet and Deck had **separate** localStorage keys: two documents wearing one
+  layout.
+- The only file writer in the whole codebase was `ooxml/` — Excel's format.
+
+So "usable individually or combined into one dual solution", the literal first
+thing asked for, had **no file behind it**. The combined view shipped
+unsaveable.
+
+### Built from first principles: `core/docfile.js`, the `.grain` format
+
+Derived from what the platform IS, not from what one app needed:
+
+1. **A document is a graph of NODES**, not cells. `main!B4` and `deck:s1/kpi`
+   are both just ids — a future app gets persistence the day it picks a prefix
+   (test asserts this with a `form:` app that does not exist).
+2. **Inputs only, never computed values.** A file that caches a result beside
+   its formula can hold the two in disagreement. Opening recalculates. (.xlsx
+   *does* cache them — which is exactly why real workbooks work as a graded
+   exam in `test/agreement.mjs`. Useful in a corpus, wrong in our own format.)
+3. **One node per line**, so a 350k-node document diffs, merges and blames.
+4. **Preserve unknown** — records a newer build wrote are kept verbatim and
+   written back. Same discipline as the zip work.
+5. **Nothing executes.** No script, macro, include or external reference in the
+   grammar. "Secure" has to mean something at the format level.
+
+JSON per record so escaping is JSON's rules — a MECHANISM with a provably
+correct answer. Every opinion in the file is ours.
+
+`file.save.doc` / `file.open.doc` are SHELL commands, not app commands, because
+the document is the shell's. `save()` with no storageKey now says so instead of
+returning silently.
+
+Proof in `qa/one_document.py`: build a sheet, put a deck on it, save one file,
+wipe the tab, reopen — and the slide's figures are still **live** (editing after
+opening still moves them). Plus a forged `miscellany/9` file with an unknown
+record opens, warns, and round-trips that record back out.
+
+  34 docfile assertions · 26+ browser assertions · sample file in
+  `qa/out/one-document.grain` (36 lines, human-readable, sheet + deck together)
+
+### The standing lesson
+**My own test was the bug ~11 times today.** Worst case: 17 assertions passing
+on a page whose grid and slide were both blank, because all of them read the
+model. Second worst: a canvas-size guard that checked the backing store matched
+the box — on a box that was itself wrong. Fix in both cases: measure what a
+person would see, and DERIVE expected numbers from the document instead of
+hand-computing constants into the test.

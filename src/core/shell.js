@@ -32,6 +32,7 @@
  */
 
 import { Registry, eventKey } from './commands.js';
+import { serialise, parse as parseDoc, EXT as DOC_EXT, MIME as DOC_MIME } from './docfile.js';
 
 const el = (tag, cls, html) => {
   const n = document.createElement(tag);
@@ -111,6 +112,22 @@ export class Shell {
         undoable: false,
         describe: 'Redo the change that was just undone.',
         run: (a, ctx) => ctx.shell.redo(),
+      })
+      /* Saving and opening a Miscellany document belong to the SHELL, not to
+       * an app, because the document does too. A file holding a sheet and a
+       * deck cannot be Sheet's to save — that is how "combined into one dual
+       * solution" ends up being a view arrangement with nothing behind it,
+       * which is exactly what it was until this existed. */
+      .define('file.save.doc', {
+        title: 'Save document', group: 'File', glyph: '⬇', needs: ['doc.read', 'fs'],
+        describe: 'Save everything — sheets, slides, all of it — as one Miscellany document.',
+        run: (a, ctx) => ctx.shell.saveDocument(),
+      })
+      .define('file.open.doc', {
+        title: 'Open document', group: 'File', glyph: '⬆', needs: ['doc.write', 'fs'],
+        undoable: false,
+        describe: 'Open a Miscellany document. It is read in this browser tab and never uploaded anywhere.',
+        run: (a, ctx) => ctx.shell.openDocumentDialog(),
       })
       .define('view.api', {
         title: 'Show API', group: 'View', glyph: '⚯',
@@ -540,8 +557,68 @@ export class Shell {
     }
   }
 
+  /* ---- the document as a file ------------------------------------------ */
+
+  /** Write the whole document — every app's nodes — to one .grain file. */
+  saveDocument() {
+    const text = serialise(this.doc.toJSON(),
+      { name: this.docName, app: this.name }, this._unknownRecords || []);
+    const blob = new Blob([text], { type: DOC_MIME });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (this.docName || 'document') + DOC_EXT;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    this.setStatusNote(`saved ${Object.keys(this.doc.toJSON()).length} nodes`, true);
+  }
+
+  /** Read a .grain file into this document, replacing what is open. */
+  openDocument(text) {
+    const r = parseDoc(text);
+    this.undoStack.length = 0;
+    this.redoStack.length = 0;
+    this.doc.loadJSON(r.nodes);
+    // Records this build did not understand are held so that saving puts them
+    // back. An older build must not quietly strip a newer one's work.
+    this._unknownRecords = r.unknown;
+    if (r.header && r.header.name) {
+      this.docName = r.header.name;
+      if (this.nameInput) this.nameInput.value = this.docName;
+    }
+    for (const s of this.surfaces.values()) if (s.reset) s.reset();
+    this.setAutosave(true);
+    this.refresh();
+    const kept = r.unknown.length ? ` · ${r.unknown.length} records kept untouched` : '';
+    this.setStatusNote(
+      `opened ${Object.keys(r.nodes).length} nodes${kept}` +
+      (r.warnings.length ? ` · ${r.warnings[0]}` : ''), true);
+    return r;
+  }
+
+  openDocumentDialog() {
+    if (!this._docInput) {
+      this._docInput = document.createElement('input');
+      this._docInput.type = 'file';
+      this._docInput.accept = DOC_EXT;
+      this._docInput.style.display = 'none';
+      this._docInput.addEventListener('change', async (e) => {
+        const f = e.target.files[0];
+        e.target.value = '';
+        if (!f) return;
+        try { this.openDocument(await f.text()); }
+        catch (ex) { this.setStatusNote('could not open: ' + ex.message, false); }
+      });
+      this.root.appendChild(this._docInput);
+    }
+    this._docInput.click();
+  }
+
   save(explicit) {
-    if (!this.storageKey) return;
+    if (!this.storageKey) {
+      // Silently doing nothing is the worst option: the user pressed Save.
+      this.setStatusNote('this page has no local storage — use Save document', false);
+      return;
+    }
     try {
       localStorage.setItem(this.storageKey, JSON.stringify({
         name: this.docName,

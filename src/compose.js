@@ -17,7 +17,14 @@ import { DeckApp } from './apps/deck/app.js';
 import { defineObject, objId, OBJECT } from './apps/deck/deck.js';
 
 const doc = createDocument();
-const shell = new Shell(doc, { name: 'Miscellany', grant: ['fs'] });
+const shell = new Shell(doc, {
+  name: 'Miscellany',
+  // One key for the whole document. Sheet and Deck had separate keys,
+  // which made "one document, two views" true of the screen and false
+  // of everything underneath it.
+  storageKey: 'miscellany.doc.v1',
+  grant: ['fs'],
+});
 
 /* ---- the model ---- */
 doc.loadJSON({
@@ -58,6 +65,8 @@ def(1, 'chart', chart(80, 200, 1120, 440, {
 shell.app(SheetApp).app(DeckApp);
 shell.mount(document.getElementById('root'), ['sheet', 'deck']);
 
+shell.docName = 'Q3 Revenue Model';
+shell.nameInput.value = shell.docName;
 shell.surfaces.get('sheet').grid.select(1, 3);
 shell.refresh();
 shell.surface.focus();
