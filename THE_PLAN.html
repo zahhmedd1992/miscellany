@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Miscellany — The Plan</title>
+<meta name="description" content="A plan to build Miscellany: free, modular, secure software that composes. Decisions, architecture, staging, and honest risk." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340;9..144,440;9..144,560;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --paper:#FBF8F2; --paper-2:#F5F0E6; --card:#FFFDF8;
+  --ink:#211C16; --ink-soft:#4A4338; --muted:#6C6356;
+  --line:#E7DFD0; --line-strong:#DAD0BC;
+  --accent:#9A3B1B; --accent-deep:#7E2F14; --accent-tint:#F3E7DF;
+  --green:#2F5D3A; --green-tint:#E6EFE7;
+  --amber:#8A6410; --amber-tint:#F7EEDA;
+  --serif:"Fraunces",Georgia,"Times New Roman",serif;
+  --sans:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Consolas,monospace;
+  --measure:46rem;
+  --gutter:clamp(1.15rem,5vw,2.5rem);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--sans);font-size:16.5px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--measure);margin:0 auto;padding:0 var(--gutter)}
+.wide{max-width:64rem;margin:0 auto;padding:0 var(--gutter)}
+
+/* ---------- masthead ---------- */
+header.mast{
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,#FFFDF8 0%,var(--paper) 100%);
+  padding:clamp(3rem,9vw,5.5rem) 0 clamp(2rem,5vw,3rem);
+}
+.eyebrow{
+  font-size:.685rem;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;margin:0 0 1.1rem;
+}
+h1{
+  font-family:var(--serif);font-weight:560;
+  font-size:clamp(2.5rem,7.5vw,4.2rem);line-height:1.03;
+  letter-spacing:-.022em;margin:0 0 1.1rem;
+}
+h1 .thin{font-weight:340;font-style:italic;color:var(--accent)}
+.standfirst{
+  font-family:var(--serif);font-weight:340;
+  font-size:clamp(1.12rem,2.6vw,1.38rem);line-height:1.5;
+  color:var(--ink-soft);margin:0 0 1.6rem;max-width:38rem;
+}
+.meta-row{
+  display:flex;flex-wrap:wrap;gap:.5rem 1.4rem;align-items:center;
+  font-size:.78rem;color:var(--muted);
+  border-top:1px solid var(--line);padding-top:1.1rem;
+}
+.meta-row b{color:var(--ink-soft);font-weight:600}
+
+/* ---------- tldr ---------- */
+.tldr{
+  background:var(--accent-tint);border-top:1px solid var(--line-strong);
+  border-bottom:1px solid var(--line-strong);
+  padding:clamp(1.8rem,4vw,2.6rem) 0;
+}
+.tldr h2{
+  font-family:var(--sans);font-size:.7rem;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--accent-deep);font-weight:700;margin:0 0 .9rem;
+}
+.tldr p{margin:0 0 .85rem;font-size:1.02rem;line-height:1.6}
+.tldr p:last-child{margin-bottom:0}
+.tldr strong{font-weight:650;color:var(--ink)}
+
+/* ---------- sections ---------- */
+section{padding:clamp(2.6rem,6vw,4rem) 0;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+.snum{
+  font-family:var(--mono);font-size:.7rem;color:var(--accent);
+  letter-spacing:.1em;font-weight:500;display:block;margin-bottom:.5rem;
+}
+h2.sh{
+  font-family:var(--serif);font-weight:560;
+  font-size:clamp(1.6rem,4.2vw,2.25rem);line-height:1.14;
+  letter-spacing:-.016em;margin:0 0 .5rem;
+}
+.sub{color:var(--muted);font-size:.95rem;margin:0 0 1.8rem;max-width:36rem}
+h3{
+  font-family:var(--sans);font-weight:650;font-size:1.03rem;
+  letter-spacing:-.005em;margin:2rem 0 .55rem;
+}
+h3:first-of-type{margin-top:0}
+h4{font-size:.8rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:650;margin:1.5rem 0 .5rem}
+p{margin:0 0 1rem}
+ul,ol{margin:0 0 1rem;padding-left:1.15rem}
+li{margin:0 0 .42rem}
+li::marker{color:var(--accent)}
+strong{font-weight:640}
+em{font-style:italic}
+a{color:var(--accent-deep);text-decoration-thickness:1px;text-underline-offset:2px}
+
+/* ---------- decision cards ---------- */
+.dec{
+  background:var(--card);border:1px solid var(--line);
+  border-left:3px solid var(--accent);
+  border-radius:3px;padding:1.15rem 1.25rem;margin:0 0 1rem;
+}
+.dec-head{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap;margin-bottom:.55rem}
+.dec-n{font-family:var(--mono);font-size:.72rem;color:var(--accent);font-weight:500;flex:none}
+.dec-q{font-weight:650;font-size:1rem;letter-spacing:-.005em;flex:1;min-width:14rem}
+.rec{
+  display:inline-block;background:var(--green-tint);color:var(--green);
+  border:1px solid #C9DCCD;border-radius:2px;
+  font-size:.7rem;font-weight:650;letter-spacing:.04em;
+  padding:.15rem .5rem;white-space:nowrap;
+}
+.dec p{margin:0 0 .5rem;font-size:.925rem;line-height:1.58}
+.dec p:last-child{margin-bottom:0}
+.dec .alt{
+  font-size:.855rem;color:var(--muted);border-top:1px dashed var(--line-strong);
+  padding-top:.5rem;margin-top:.6rem;
+}
+.dec .alt b{color:var(--ink-soft);font-weight:600}
+
+/* ---------- code ---------- */
+pre{
+  background:#231E17;color:#EDE6D8;border-radius:4px;
+  padding:1rem 1.1rem;overflow-x:auto;font-family:var(--mono);
+  font-size:.775rem;line-height:1.62;margin:0 0 1rem;
+  border:1px solid #3A322A;
+}
+pre .c{color:#948873;font-style:italic}
+pre .k{color:#E5A05C}
+pre .s{color:#A8C99A}
+pre .n{color:#8FB4D9}
+pre .hl{color:#F0B67F;font-weight:500}
+code{
+  font-family:var(--mono);font-size:.855em;
+  background:var(--paper-2);border:1px solid var(--line);
+  border-radius:2px;padding:.06em .32em;
+}
+pre code{background:none;border:0;padding:0;font-size:1em}
+
+/* ---------- figure ---------- */
+figure{margin:1.4rem 0;padding:0}
+figcaption{
+  font-size:.815rem;color:var(--muted);margin-top:.6rem;
+  border-left:2px solid var(--line-strong);padding-left:.7rem;line-height:1.5;
+}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto;margin:0 0 1.2rem;border:1px solid var(--line);border-radius:3px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:.845rem;min-width:34rem}
+th{
+  text-align:left;font-weight:650;font-size:.7rem;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);
+  padding:.65rem .8rem;border-bottom:1px solid var(--line-strong);
+  background:var(--paper-2);white-space:nowrap;
+}
+td{padding:.6rem .8rem;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.48}
+td:first-child{min-width:7rem}
+tr:last-child td{border-bottom:0}
+td.mono,th.mono{font-family:var(--mono);font-size:.78rem}
+.ok{color:var(--green);font-weight:650}
+.no{color:var(--accent);font-weight:650}
+.warn{color:var(--amber);font-weight:650}
+
+/* ---------- stage blocks ---------- */
+.stage{
+  display:grid;grid-template-columns:auto 1fr;gap:0 1.2rem;
+  padding:1.2rem 0;border-top:1px solid var(--line);
+}
+.stage:last-of-type{border-bottom:1px solid var(--line)}
+.stage-n{
+  font-family:var(--mono);font-size:.72rem;color:#fff;background:var(--accent);
+  border-radius:2px;padding:.2rem .5rem;height:fit-content;font-weight:500;
+  white-space:nowrap;
+}
+.stage-b h3{margin:0 0 .3rem;font-size:1.05rem}
+.stage-b .when{font-size:.775rem;color:var(--muted);margin:0 0 .6rem;font-family:var(--mono)}
+.stage-b p{font-size:.92rem;margin:0 0 .55rem}
+.gate{
+  background:var(--paper-2);border:1px solid var(--line);
+  border-radius:3px;padding:.65rem .8rem;font-size:.865rem;margin-top:.55rem;
+}
+.gate b{
+  display:block;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--accent-deep);margin-bottom:.25rem;font-weight:700;
+}
+
+/* ---------- callout ---------- */
+.note{
+  background:var(--paper-2);border:1px solid var(--line-strong);
+  border-radius:3px;padding:1rem 1.15rem;margin:1.2rem 0;font-size:.925rem;
+}
+.note.hot{background:var(--accent-tint);border-color:#E0C4B5}
+.note b.lbl{
+  display:block;font-size:.68rem;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--accent-deep);margin-bottom:.35rem;font-weight:700;
+}
+.note p:last-child{margin-bottom:0}
+
+/* ---------- pull ---------- */
+.pull{
+  font-family:var(--serif);font-weight:340;font-style:italic;
+  font-size:clamp(1.2rem,3vw,1.55rem);line-height:1.36;
+  color:var(--accent-deep);border-left:2px solid var(--accent);
+  padding:.15rem 0 .15rem 1.25rem;margin:1.8rem 0;
+}
+
+/* ---------- risk ---------- */
+.risk{border-top:1px solid var(--line);padding:.85rem 0}
+.risk:last-child{border-bottom:1px solid var(--line)}
+.risk-h{font-weight:640;font-size:.95rem;margin-bottom:.25rem;display:flex;gap:.6rem;align-items:baseline}
+.sev{font-size:.66rem;letter-spacing:.07em;text-transform:uppercase;font-weight:700;padding:.1rem .4rem;border-radius:2px;flex:none}
+.sev.h{background:var(--accent-tint);color:var(--accent-deep)}
+.sev.m{background:var(--amber-tint);color:var(--amber)}
+.risk p{font-size:.885rem;margin:0;color:var(--ink-soft)}
+.risk .mit{font-size:.885rem;margin:.35rem 0 0;color:var(--ink-soft)}
+.risk .mit b{color:var(--green);font-weight:650}
+
+footer{
+  padding:2.5rem 0 3.5rem;font-size:.8rem;color:var(--muted);
+  border-top:1px solid var(--line-strong);background:var(--paper-2);
+}
+footer p{margin:0 0 .5rem}
+
+@media (max-width:600px){
+  .stage{grid-template-columns:1fr;gap:.6rem}
+  .stage-n{justify-self:start}
+}
+@media print{
+  body{font-size:10.5pt}
+  section{page-break-inside:auto;border-bottom:1px solid #ddd}
+  .dec,.note,.stage,figure,pre{page-break-inside:avoid}
+  pre{background:#F4F1EA;color:#211C16;border:1px solid #ccc}
+  pre .c{color:#777}pre .k{color:#9A3B1B}pre .s{color:#2F5D3A}pre .n{color:#1F4C73}pre .hl{color:#9A3B1B}
+}
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="wrap">
+    <p class="eyebrow">Miscellany · Platform Plan · 02 August 2026</p>
+    <h1>Software that <span class="thin">composes</span></h1>
+    <p class="standfirst">A plan to build the largest body of free software that a real person can actually use — by making every piece out of the same material, so the pieces fit.</p>
+    <div class="meta-row">
+      <span><b>For</b> Zachary Ahmed</span>
+      <span><b>v3</b> — build doctrine corrected, all 7 decisions resolved</span>
+      <span><b>Status</b> Building</span>
+    </div>
+  </div>
+</header>
+
+<div class="tldr">
+  <div class="wrap">
+    <h2>tl;dr</h2>
+    <p><strong>The vision is buildable, but not the way it sounds.</strong> "Write an Excel replacement" is 100+ engineer-years. "Write one data engine, then put two faces on it" is one project — and it's the only version where Sheet and Deck genuinely merge instead of being wired together.</p>
+    <p><strong>One architectural bet pays for everything.</strong> A spreadsheet's recalculation graph and a "live chart on a slide" are the same machinery. Build that graph once, and app #2 costs ~20% of app #1, combining apps costs nothing, security becomes enforceable, and the API/AI layer generates itself instead of being written.</p>
+    <p><strong>The market gap is real and I verified it.</strong> Univer — the closest thing that exists to your vision, 14k stars, Apache-2.0 — puts <em>file import/export and printing</em> behind a paid tier. Its free version cannot open an .xlsx or print. That's the wedge: <strong>nothing here is ever gated.</strong></p>
+    <p><strong>The plan is staged so nothing is a leap of faith.</strong> Something real in your browser in ~2 weeks. One undeniably excellent app before a second one starts. A hard, binary quality gate — not a vibe — controls every ship.</p>
+    <p><strong>v3 — you were right about §7, and the error was bigger than the sentence you quoted.</strong> Calling something "commodity" states the conclusion as the premise. Worse, it produced a checkable contradiction: I chose a library that silently drops what it doesn't understand, four sections away from a gate demanding zero-loss round-trip. The corrected rule is <em>never inherit a model, freely use a mechanism</em> — and taking it seriously produced a better product, not just a purer one. <strong>Preserve-unknown</strong> (§7) is now the moat. It costs Stage 1 roughly double: 10–14 weeks becomes 18–24.</p>
+    <p><strong>All 7 decisions are resolved from your brief</strong> — §1 shows the phrase that settles each. One went against my recommendation. Build has started.</p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<section id="decisions">
+<div class="wrap">
+  <span class="snum">01 — DECISIONS · RESOLVED</span>
+  <h2 class="sh">You already answered these</h2>
+  <p class="sub">You were right that your brief decides all seven. Here is each one with the phrase that settles it — so you can check my reading rather than take my word.</p>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>#</th><th>Your words</th><th>Resolved</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">D1</td><td>"I want the code to be freely available" + ownership/control throughout</td><td><b>MPL-2.0.</b> Improvements to our files come back; anyone can still build on top.</td></tr>
+      <tr><td class="mono">D2</td><td>"make <b>miscellany.io</b> the world's largest platform of free&nbsp;… software"</td><td><b>The software IS miscellany.io.</b> <span class="no">Changed from my rec</span> — I proposed two co-equal wings; you named the domain as the platform. Open Signal becomes the secondary wing.</td></tr>
+      <tr><td class="mono">D3</td><td>"free software becomes significantly less useful the moment the quality drops below the paid commercial versions"</td><td><b>Narrow + flawless.</b> Scope is whatever we can make undeniably excellent.</td></tr>
+      <tr><td class="mono">D4</td><td>"real, non-technical users can use/download it while technical users can get what they need as well"</td><td><b>Both.</b> Browser and installer, one codebase. You stated it outright.</td></tr>
+      <tr><td class="mono">D5</td><td>"not… unrelated blocks thrown together in a playpin" + "world's largest"</td><td><b>Yes, but gated.</b> Third parties only after a real sandbox and a published bar.</td></tr>
+      <tr><td class="mono">D6</td><td>"USEFUL, VALUABLE TO REAL PEOPLE, SOLUTION ORIENTED"</td><td><b>Tasks completable, not app count.</b></td></tr>
+      <tr><td class="mono">D7</td><td>no signal — cosmetic</td><td>Miscellany / <b>Grain</b> / Sheet · Deck · Doc · Note · Form · Board.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p style="font-size:.9rem;color:var(--muted)">The original reasoning for each is kept below, unchanged, in case you want to overturn one.</p>
+
+  <div class="dec">
+    <div class="dec-head"><span class="dec-n">D1</span><span class="dec-q">What license does our own code use?</span><span class="rec">REC: MPL-2.0</span></div>
+    <p>This is genuinely yours, not mine — it's a values call. <strong>Mozilla Public License 2.0</strong> is file-level copyleft: if Microsoft or anyone forks our files and improves them, those improvements must be published. But anyone can build a proprietary product <em>on top</em> without restriction. Firefox and LibreOffice both use it.</p>
+    <p>It threads your two pillars exactly: improvements come back (ownership, no one closes it), and technical users can still embed it in whatever they want (free, frictionless).</p>
+    <p class="alt"><b>If you'd rather:</b> <b>Apache-2.0</b> — maximum possible adoption, includes a patent grant, but anyone can fork it closed and never contribute back. <b>AGPL-3.0</b> — nobody can ever build anything closed on it; also blocks the technical users you said you want to serve. I'd avoid AGPL for that reason.</p>
+  </div>
+
+  <div class="dec">
+    <div class="dec-head"><span class="dec-n">D2</span><span class="dec-q">Does the software live under Miscellany, or somewhere else?</span><span class="rec">REC: Two wings, one brand</span></div>
+    <p>miscellany.io is live today as "a collection of autonomous, AI-authored works" — Open Signal's umbrella, warm editorial identity. A software commons is a different animal wearing the same name.</p>
+    <p>I'd keep one brand with two wings: <strong>Works</strong> (Open Signal, publications) and <strong>Software</strong> (the platform). "Miscellany" is honestly a <em>better</em> name for a collection of many useful tools than for a publishing imprint — the software is the stronger claim on the name.</p>
+    <p class="alt"><b>If you'd rather:</b> give the software its own domain and leave miscellany.io as-is. Costs a second brand to build and splits your attention, but keeps both stories clean. This gates the front-door work in Stage 4, nothing earlier — so you can defer it if you want.</p>
+  </div>
+
+  <div class="dec">
+    <div class="dec-head"><span class="dec-n">D3</span><span class="dec-q">How wide is Sheet v1?</span><span class="rec">REC: Narrow + flawless</span></div>
+    <p>Excel has ~500 functions and ~30 years of features. Matching it is not on the table this decade. But <strong>95% of real spreadsheet work is a small surface</strong>: type, format, ~120 functions, sort/filter, freeze, charts, open/save .xlsx.</p>
+    <p>My recommendation: build exactly that surface, and make it <em>better</em> than Excel where Excel is genuinely bad — showing you why a number is wrong, real version history, no silent data mangling (Excel still turns gene names into dates and still believes 1900 was a leap year).</p>
+    <p class="alt"><b>If you'd rather:</b> chase pivot tables + macros in v1. That roughly doubles Stage 1 and risks shipping something broad and mediocre — which by your own rule is worth nothing.</p>
+  </div>
+
+  <div class="dec">
+    <div class="dec-head"><span class="dec-n">D4</span><span class="dec-q">Ship in the browser, or as a download?</span><span class="rec">REC: Both, one codebase</span></div>
+    <p>Non-technical people split cleanly into "won't install anything" and "wants a real app." We serve both from the same code: the web version opens instantly with no account and no upload (your file never leaves your machine), and the desktop version is a <strong>~10MB installer</strong> via Tauri — versus Electron's ~150MB — with real file access and full offline use.</p>
+    <p class="alt"><b>If you'd rather:</b> desktop-only is simpler to secure; web-only is simpler to distribute. Both costs maybe 10% extra and roughly doubles who can use it. I think it's the highest-return 10% in the plan.</p>
+  </div>
+
+  <div class="dec">
+    <div class="dec-head"><span class="dec-n">D5</span><span class="dec-q">Do we accept third-party modules?</span><span class="rec">REC: Yes — but not until Stage 4</span></div>
+    <p>Third-party modules are the only path to "largest." They're also the only path to "a junk drawer of unrelated blocks" and to shipping malware under your name. Both of your fears live here.</p>
+    <p>So: no third-party modules until the sandbox is real (Stage 3) <em>and</em> a published quality bar exists (Stage 4). Until then everything is first-party. See §6 for exactly what "secure" means at each stage — I'm not going to let that word float.</p>
+    <p class="alt"><b>If you'd rather:</b> never accept them — the platform stays exactly as large as I can personally build, which caps it well below "largest."</p>
+  </div>
+
+  <div class="dec">
+    <div class="dec-head"><span class="dec-n">D6</span><span class="dec-q">"Largest in the world" — measured how?</span><span class="rec">REC: Not app count</span></div>
+    <p>Largest-by-app-count is the junk drawer you explicitly don't want, and it's unwinnable anyway (Debian ships 60,000 packages). I'd hold us to: <strong>the most things a person can finish, for $0, with no account, without gluing tools together.</strong></p>
+    <p>That metric is winnable because it's the one nobody optimizes for, and the substrate compounds — app #6 costs a fraction of app #1, so raw count arrives later as a consequence rather than as the goal.</p>
+    <p class="alt"><b>If you'd rather:</b> chase headline app count from the start. Faster-looking early, but it produces the playpen and it fails your quality rule the moment app #3 is thin.</p>
+  </div>
+
+  <div class="dec">
+    <div class="dec-head"><span class="dec-n">D7</span><span class="dec-q">Names.</span><span class="rec">REC: plain nouns</span></div>
+    <p>Platform: <strong>Miscellany</strong>. The shared substrate everything is built from: <strong>Grain</strong> — the material with the same structure all the way through. Apps get plain nouns, no prefixes: <strong>Sheet · Deck · Doc · Note · Form · Board</strong>.</p>
+    <p class="alt"><b>Entirely cosmetic and reversible.</b> Overrule freely — I'm only flagging it so you're not surprised by the vocabulary in the rest of this document.</p>
+  </div>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="idea">
+<div class="wrap">
+  <span class="snum">02 — THE ONE IDEA</span>
+  <h2 class="sh">Why this is buildable, and why nobody has it</h2>
+
+  <p>Every office suite ever built is <em>separate programs that exchange files</em>. Word, Excel and PowerPoint are three codebases; "paste a chart into a slide" is a fragile bridge between them, which is why linked charts in PowerPoint have been notoriously broken for twenty years.</p>
+
+  <p>What you described is different. You want <strong>one thing that can wear different faces</strong>. That has a precise technical shape:</p>
+
+  <h3>A spreadsheet already contains the whole architecture</h3>
+
+  <p>Think about what a spreadsheet actually is under the hood. It's not a grid. It's a <strong>dependency graph</strong>: <code>C1</code> depends on <code>B4:B16</code>, so when B7 changes, something marks C1 dirty and recalculates it. That graph plus a recalculation scheduler <em>is</em> the spreadsheet. The grid is just a way of looking at it.</p>
+
+  <p>Now: a chart on a slide that updates when a cell changes is <em>the same problem</em>. A form field bound to a data source is the same problem. A document paragraph showing a live total is the same problem.</p>
+
+  <div class="pull">Build the dependency graph once, and every "integration" between apps you'd otherwise have to write is already done — because it was never two apps.</div>
+
+  <p>So Grain is four pieces, and the first one is the load-bearing one:</p>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>Piece</th><th>What it is</th><th>What it buys</th></tr></thead>
+    <tbody>
+      <tr><td><b>Node graph</b></td><td>Every cell, shape, paragraph, field is a node with a value, an optional formula, a style, and dependents. One recalculation scheduler.</td><td>Apps compose for free. A chart on a slide is just a node that depends on a range.</td></tr>
+      <tr><td><b>Command registry</b></td><td>Every action the software can take is declared once — id, arguments, what it touches.</td><td>Keyboard shortcut, menu item, script call, HTTP endpoint <em>and</em> AI tool all generate from one declaration.</td></tr>
+      <tr><td><b>Capability manifest</b></td><td>Every module declares what it needs: files, network, clipboard. Nothing gets ambient access.</td><td>"Secure" becomes an enforceable property, and a plain-English permission list for the user.</td></tr>
+      <tr><td><b>View shell</b></td><td>The UI is generated from the command registry filtered by a profile.</td><td>Your ribbon complaint, solved as configuration, not as a fork.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Two worked examples make this concrete. They're the part worth reading closely — the rest of this document is scaffolding around them.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="ex1">
+<div class="wrap">
+  <span class="snum">03 — WORKED EXAMPLE ONE</span>
+  <h2 class="sh">Excel + PowerPoint, actually merged</h2>
+  <p class="sub">Your test case. Here is literally what happens.</p>
+
+  <p>You have a model in Sheet and a board deck in Deck. You want the revenue chart on slide 3 to be the real numbers, always.</p>
+
+<pre><code><span class="c">// Both documents live in the same node graph.</span>
+<span class="c">// The chart is not a copy. It is a node that depends on a range.</span>
+
+sheet:q3-model/B4:B16   <span class="c">→ 13 value nodes</span>
+deck:board/s3/chart-1   <span class="c">→ node { source: <span class="hl">ref("sheet:q3-model/B4:B16")</span> }</span>
+</code></pre>
+
+  <p>Now edit B7. Here is the entire mechanism:</p>
+
+<pre><code><span class="k">1.</span> B7 changes
+<span class="k">2.</span> Scheduler walks dependents of B7  <span class="c">— the same walk that updates =SUM(B4:B16)</span>
+<span class="k">3.</span> chart-1 is in that list          <span class="c">— it's an ordinary dependent, nothing special</span>
+<span class="k">4.</span> chart-1 marked dirty → slide 3 repaints
+</code></pre>
+
+  <p>There is no link, no paste-special, no sync job, no file boundary, no integration code. <strong>Step 2 is machinery a spreadsheet needs anyway.</strong> The chart got live updates for free, because it was never a different program.</p>
+
+  <div class="note hot">
+    <b class="lbl">Why this beats Office rather than just matching it</b>
+    <p>In PowerPoint, a linked Excel chart is bound to a <em>file path</em>. Move the file, rename the folder, email the deck — the link breaks. Everyone has seen this.</p>
+    <p>Here the reference is a <strong>stable node id</strong> inside one document. There is no path to break. And when you export to .xlsx + .pptx for someone on Office, re-importing the pair rebuilds the connection — because the id survives the round trip.</p>
+  </div>
+
+  <h3>What "combine the two into one dual solution" means in practice</h3>
+  <p>Open a deck. Press <code>Ctrl+K</code>, type "sheet". You now have a grid pane and a slide pane over one document. Sheet and Deck were never separate downloads with an integration — they are two view profiles over the same graph. Using one alone is the default; using both is one keystroke.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="ex2">
+<div class="wrap">
+  <span class="snum">04 — WORKED EXAMPLE TWO</span>
+  <h2 class="sh">The 400-button problem</h2>
+  <p class="sub">Your ribbon observation, turned into a mechanism.</p>
+
+  <p>You said it exactly right: Excel's header is hundreds of buttons of which almost nobody uses more than a handful. The usual response is "we made a simpler app" — which means a fork, a second codebase, and a ceiling the user hits and can't pass.</p>
+
+  <p>Because every action is declared in one registry, the toolbar is not code. It's a list:</p>
+
+<pre><code><span class="c">// profiles/sheet.simple.json — the entire "simple mode"</span>
+{
+  <span class="n">"extends"</span>: <span class="s">"sheet.default"</span>,
+  <span class="n">"toolbar"</span>: [
+    <span class="s">"fmt.bold"</span>, <span class="s">"fmt.number.currency"</span>, <span class="s">"fmt.number.percent"</span>,
+    <span class="s">"edit.undo"</span>, <span class="s">"edit.redo"</span>,
+    <span class="s">"data.sort"</span>, <span class="s">"data.filter"</span>,
+    <span class="s">"insert.chart"</span>, <span class="s">"view.freeze"</span>, <span class="s">"file.save"</span>
+  ],
+  <span class="n">"hide"</span>: [<span class="s">"*"</span>]   <span class="c">// everything else: palette-only, not deleted</span>
+}
+</code></pre>
+
+  <p>Ten buttons. And here is the part that makes minimalism safe rather than limiting:</p>
+
+  <div class="pull">The other 390 commands aren't removed. They're one <code>Ctrl+K</code> away, searchable by name.</div>
+
+  <p>A beginner sees ten buttons and is never lost. A power user types "conditional format" and gets it instantly — faster than finding it in a ribbon. Nobody hits a ceiling, and there is no second codebase. This is the lesson VS Code proved at enormous scale, applied to the place it's needed most.</p>
+
+  <p>The same file drives a stripped-down build for a school, a finance-specific profile with modeling commands surfaced, or a kiosk with three buttons. <strong>Configuration, not forks.</strong> That's what "modular" has to mean to be worth anything.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="agents">
+<div class="wrap">
+  <span class="snum">05 — CONNECTING TO THE OUTSIDE WORLD</span>
+  <h2 class="sh">The API you don't have to write</h2>
+  <p class="sub">You described this one without the vocabulary. Here's the vocabulary, and why it's nearly free.</p>
+
+  <p>Normally, giving software an API means building a second product: design endpoints, write handlers, keep them in sync with the app, document them, watch them rot.</p>
+
+  <p>Not here. Every action is <em>already</em> a declared command with typed arguments. So the API is a projection of the registry:</p>
+
+<pre><code><span class="c">// declared once, by the feature author</span>
+command(<span class="s">"data.sort"</span>, {
+  args:  { range: <span class="s">"Range"</span>, by: <span class="s">"Column"</span>, dir: <span class="s">"asc|desc"</span> },
+  needs: [<span class="s">"doc.write"</span>],
+  <span class="n">describe</span>: <span class="s">"Sort a range by a column."</span>
+})
+
+<span class="c">// and it automatically exists as all of these:</span>
+<span class="k">keyboard</span>   Ctrl+Shift+S
+<span class="k">menu</span>       Data → Sort
+<span class="k">palette</span>    Ctrl+K "sort"
+<span class="k">script</span>     ms.data.sort({range:"A1:D50", by:"C", dir:"desc"})
+<span class="k">http</span>       POST /v1/cmd/data.sort
+<span class="k">AI tool</span>    <span class="hl">exposed over MCP — any assistant can call it</span>
+</code></pre>
+
+  <p><strong>MCP</strong> (Model Context Protocol) is the open standard for letting an AI assistant use a tool. Because our commands already carry names, typed arguments and descriptions, the MCP server is a generated adapter — not a hand-written integration.</p>
+
+  <p>What that buys, concretely: someone points Claude or ChatGPT at their Miscellany and says <em>"take this CSV, build the Q3 model, and make me a board deck from it."</em> The assistant calls the same commands a human's keystrokes call. No plugin, no scripting language to learn, no vendor to ask permission from.</p>
+
+  <div class="note">
+    <b class="lbl">And the reverse direction</b>
+    <p>AI <em>inside</em> the apps goes through one capability-gated bridge — bring your own key, or point it at a local model on your own machine. No Miscellany account, no Miscellany server, no per-seat AI tax. If you use a local model, your data never leaves the building. That is the ownership pillar applied to the thing everyone else is currently using to create new lock-in.</p>
+  </div>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="security">
+<div class="wrap">
+  <span class="snum">06 — SECURITY</span>
+  <h2 class="sh">What "secure" is allowed to mean, and when</h2>
+  <p class="sub">This word is usually decoration. Here is exactly what it buys at each stage, including where it buys nothing yet.</p>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>Stage</th><th>Enforcement mechanism</th><th>Honest strength</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><b>1–2</b><br>first-party only</td>
+        <td>Capability manifests declared per module; a CI check fails the build if code touches something it didn't declare.</td>
+        <td><span class="warn">Advisory.</span> This is a discipline and an audit trail, <b>not a sandbox</b>. Safe only because every line is first-party.</td>
+      </tr>
+      <tr>
+        <td><b>3</b><br>real isolation</td>
+        <td>Modules run in a separate context — Web Worker in browser, isolated process on desktop. No DOM, no filesystem, no network handles. Every privileged call crosses an IPC boundary to a broker written in Rust that checks the granted set.</td>
+        <td><span class="ok">Enforced.</span> A module can't read a file it wasn't granted because it holds no function that can.</td>
+      </tr>
+      <tr>
+        <td><b>4</b><br>third parties</td>
+        <td>Above, plus WASM Component Model for compute-heavy modules — capability-based by construction — plus signed modules and a published review bar.</td>
+        <td><span class="ok">Enforced + attested.</span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>The user-facing half is one plain-English sheet. Not "requests permission <code>fs.read</code>" — <em>"This add-on wants to: read files you open · send data to the internet."</em> Most modules should legitimately need <strong>nothing</strong>, and a module asking for nothing should say so loudly. That makes the ones that do ask conspicuous.</p>
+
+  <h3>The macro problem, which is worth naming</h3>
+  <p>Excel macros run arbitrary code with your full user rights. That design decision is one of the most productive malware vectors in the history of business computing, and it persists because Microsoft can't remove it without breaking thirty years of workbooks.</p>
+  <p>We have no such debt. A script here is a sequence of registry commands running under the document's capability set. A macro that wants to reach the internet has to ask, in plain English, and can be refused while everything else still works. <strong>That's not us being careful — that's a materially better product for anyone who has ever been afraid to enable content on a spreadsheet a stranger sent them.</strong></p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="stand">
+<div class="wrap">
+  <span class="snum">07 — WHAT WE WRITE</span>
+  <h2 class="sh">Never inherit a model. Freely use a mechanism.</h2>
+  <p class="sub">This section was wrong in v2 and you caught it from the premise alone. Here is the corrected rule, and what it costs.</p>
+
+  <div class="note hot">
+    <b class="lbl">The error</b>
+    <p>v2 said: <em>"We do not write a font shaper, a zip parser, a PDF writer, or an Excel function library. Those are solved, commodity, and permissively licensed."</em></p>
+    <p>Calling something "solved" and "commodity" <b>is the conclusion, stated as if it were the premise.</b> It skips exactly the independent evaluation that is supposed to produce our quality. If we adopt someone's library, our starting point is wherever <em>their</em> analysis stopped — and we inherit every judgement they made without ever making it ourselves.</p>
+    <p>And it produced a concrete, checkable contradiction. See below.</p>
+  </div>
+
+  <h3>The rule that replaces it</h3>
+  <p>The question is not "build or use." It is <strong>what kind of thing is this?</strong></p>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>Kind</th><th>Definition</th><th>Rule</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><b>Model</b></td>
+        <td>An <em>opinion</em> about what the thing is. A workbook class. A cell's semantics. A document representation. Someone decided what matters and what to discard.</td>
+        <td><span class="no">ALWAYS BUILD.</span> Adopting one makes our architecture downstream of their analysis — permanently and invisibly.</td>
+      </tr>
+      <tr>
+        <td><b>Mechanism</b></td>
+        <td>A transformation with a <em>provably correct answer</em> and no opinion. DEFLATE. SHA-256. Glyph shaping against the OpenType spec.</td>
+        <td><span class="ok">USE FREELY.</span> There is no "our take on inflate." Rewriting it produces a worse answer, not a more purposeful one.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>This is a sharper rule than either "build everything" or "stand on shoulders," and it makes the instinct operational instead of a mood. Applied honestly, it moves four things.</p>
+
+  <div class="note hot">
+    <b class="lbl">The contradiction your pushback exposed</b>
+    <p>v2 chose <b>ExcelJS</b> to read and write .xlsx. ExcelJS has its own workbook model and <b>silently drops what it does not understand</b> — charts, conditional formatting nuances, pivot definitions.</p>
+    <p>v2 also set the Stage 1 gate at <b>"25 real files round-trip with zero differences."</b></p>
+    <p><b>ExcelJS structurally cannot pass that gate.</b> I set a quality bar and simultaneously chose a dependency that makes it unreachable — and the two sat four sections apart in the same document. You found it without seeing a line of code.</p>
+  </div>
+
+  <h3>What falls out — and it's a better product, not just a purer one</h3>
+  <p>Parsing OOXML ourselves against the published ECMA-376 spec unlocks a technique no wrapper library can offer, because every wrapper's job is to throw away what it doesn't model:</p>
+
+  <div class="pull">Parse what we model. Keep everything else as opaque XML. Write it back byte-for-byte.</div>
+
+  <p><strong>Preserve-unknown.</strong> Open a workbook with a pivot table we don't support: we model the cells, retain the pivot XML untouched, and write it back exactly. The user's file survives us intact even where our features stop.</p>
+
+  <p>That is the single biggest reason people don't leave Excel — <em>"I opened it in the free one and it wrecked my file."</em> Everyone loses this, because everyone routes through a lossy intermediate model. It's a moat, and it exists only because we refused the shortcut.</p>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>Layer</th><th>Kind</th><th>Call</th><th>Change</th></tr></thead>
+    <tbody>
+      <tr><td>Node graph + recalc scheduler</td><td>Model</td><td><span class="no">BUILD</span></td><td>—</td></tr>
+      <tr><td>Command registry + view shell</td><td>Model</td><td><span class="no">BUILD</span></td><td>—</td></tr>
+      <tr><td>Capability broker</td><td>Model</td><td><span class="no">BUILD</span></td><td>—</td></tr>
+      <tr><td>Design system</td><td>Model</td><td><span class="no">BUILD</span></td><td>—</td></tr>
+      <tr><td><b>.xlsx / .pptx read + write</b></td><td>Model</td><td><span class="no">BUILD</span> — direct OOXML, preserve-unknown</td><td><b>was ExcelJS</b></td></tr>
+      <tr><td><b>Formula function library</b></td><td>Model — every function's edge cases are semantics we'd inherit</td><td><span class="no">BUILD</span> — ~120 from spec</td><td><b>was Formualizer</b></td></tr>
+      <tr><td>Collaboration / history</td><td>Split — see below</td><td><span class="warn">ALGORITHM ONLY</span></td><td><b>deferred past Stage 2</b></td></tr>
+      <tr><td>zip / DEFLATE</td><td>Mechanism — RFC 1951</td><td><span class="ok">USE</span></td><td>container logic still ours</td></tr>
+      <tr><td>Text shaping</td><td>Mechanism — Unicode + OpenType</td><td><span class="ok">USE</span></td><td>—</td></tr>
+      <tr><td>Desktop host (Tauri)</td><td>Host, not a model — a window and an IPC pipe</td><td><span class="ok">USE</span></td><td>keep surface thin</td></tr>
+      <tr><td>Windows code signing</td><td>Mechanism</td><td><span class="ok">USE</span></td><td>—</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note">
+    <b class="lbl">The one place I'm deliberately not applying the rule at full strength</b>
+    <p>CRDTs — the maths behind conflict-free collaborative editing. Yjs's <em>document model</em> is a model and we won't adopt it. But the <em>convergence algorithm</em> is a mechanism with vicious adversarial edge cases, and a hand-rolled version is <b>more likely to lose your data, not less</b>. Silent data loss is the one failure that ends a free spreadsheet's reputation permanently.</p>
+    <p>So: use the algorithm, never the document representation. And since collaboration isn't in Stage 1 or Stage 2 anyway, the decision is deferred until it's actually in front of us — with real code to judge it against instead of a principle.</p>
+  </div>
+
+  <h3>What it costs — the honest number</h3>
+  <p><strong>Stage 1 goes from ~10–14 weeks to ~18–24.</strong> That's close to a doubling, and it's the direct price of your principle. It's the right call, but you should see the trade you're making rather than have me quietly absorb it:</p>
+  <ul>
+    <li>The Stage 1 gate becomes <em>reachable</em> — it wasn't, with a lossy dependency.</li>
+    <li>Lossless round-trip becomes a genuine moat rather than a claim.</li>
+    <li>The Formualizer risk (v0.7.1, one maintainer) disappears entirely — it's no longer in the stack.</li>
+    <li>No dependency can abandon us, churn its API, or relicense underneath us.</li>
+  </ul>
+
+  <h3>The dependency rule, enforced by the build</h3>
+  <p>For the mechanisms we do use: permissive only — MIT, Apache-2.0, BSD, ISC, MPL-2.0, CC0. <strong>No GPL, no AGPL, no dual-licensed-with-a-commercial-escape-hatch</strong> — that last is the trap, because it looks free until you read the terms. It's why <b>HyperFormula</b> (GPLv3-or-paid) was rejected. CI scans the tree every commit and fails the build on violation.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="quality">
+<div class="wrap">
+  <span class="snum">08 — THE QUALITY PROBLEM</span>
+  <h2 class="sh">Free software loses on taste, not features</h2>
+
+  <p>You said free software becomes worthless the moment it drops below the paid version. Agreed — and I want to be precise about <em>where</em> free software actually loses, because it's not where people assume.</p>
+
+  <p>LibreOffice has more features than most people use, opens nearly every file, costs nothing, and has existed for fifteen years. It has not won. Not because of a missing feature — because using it feels like using software from 2009. It loses on <strong>taste</strong>.</p>
+
+  <p>The counterexample is the one that matters: <strong>Blender</strong>. For years it was "the free one" that professionals politely avoided. Then version 2.8 shipped a ground-up interface redesign — and Blender became the tool studios choose over software costing thousands per seat. Nothing about the license changed. The rendering engine wasn't the unlock. <em>Design was.</em></p>
+
+  <div class="pull">The moat is not the code. It's that the whole thing feels like one considered object rather than a hundred contributed pieces.</div>
+
+  <p>So: one design system, one interaction language, one typographic voice, across every app, from the first commit. Not applied at the end. Every app inherits it by construction — the same way every app inherits the node graph.</p>
+
+  <h3>Where "the free one" is allowed to be better, not merely equal</h3>
+  <p>Parity is a losing frame. These are places where a clean start beats thirty years of compatibility debt, and they're what Sheet should be known for:</p>
+  <ul>
+    <li><strong>"Why is this number wrong?"</strong> — click any cell, see the full chain of what produced it. Excel's audit tools are an afterthought; ours is the point.</li>
+    <li><strong>Real version history</strong> — every edit, forever, local, free. Not a cloud subscription feature.</li>
+    <li><strong>No silent data destruction</strong> — Excel still converts gene names to dates and still models 1900 as a leap year for compatibility with a 1980s bug. We import faithfully and never mangle.</li>
+    <li><strong>Instant open</strong> — no splash screen, no account, no sign-in wall, no "loading your workspace."</li>
+    <li><strong>Real numbers</strong> — correct decimal arithmetic for money. <code>0.1 + 0.2</code> is a genuine and famous source of financial spreadsheet error.</li>
+  </ul>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="stages">
+<div class="wrap">
+  <span class="snum">09 — SEQUENCE</span>
+  <h2 class="sh">How it gets built</h2>
+  <p class="sub">Every stage ships something usable on its own. Every stage has a binary gate — a test that passes or doesn't, not a judgement call. Nothing starts before the gate before it is green.</p>
+
+  <div class="note">
+    <b class="lbl">Pace assumption — state it so we can correct it</b>
+    <p>Roughly four focused build sessions a week, me implementing, you reviewing at each gate. If that's wrong, every date below moves proportionally. I'd rather be corrected in week two than in month four.</p>
+  </div>
+
+  <div class="stage">
+    <div class="stage-n">NOW</div>
+    <div class="stage-b">
+      <h3>Something real you can open</h3>
+      <p class="when">~2 weeks</p>
+      <p>A grid in your browser: type, format, formulas that recalculate, save and reload. Deliberately unpolished. Its only job is to make the node graph real and give you something to react to before three months have gone by.</p>
+      <div class="gate"><b>Gate</b> You open a link, build a small budget, close the tab, reopen it, and your work is there.</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="stage-n">STAGE 1</div>
+    <div class="stage-b">
+      <h3>Sheet, our own OOXML, and Grain extracted from both</h3>
+      <p class="when">~18–24 weeks &nbsp;<span style="color:var(--accent)">(was 10–14 — this is the cost of §7)</span></p>
+      <p>Sheet to the scope in D3, at genuine quality, reading and writing .xlsx ourselves. Grain gets pulled <em>out</em> of working code rather than designed in advance — an abstraction invented before it has a real consumer is a guess, and guessed abstractions are how platforms die before shipping anything.</p>
+      <p>Order matters: <b>read-only OOXML against a handful of the corpus first</b>, before committing to the writer. The format's weirdness is cheaper to learn on the read side, and the writer is where preserve-unknown actually gets tested.</p>
+      <div class="gate"><b>Gate — binary, no judgement</b> (a) 25 real-world .xlsx files — SEC filings, government budgets — open, save, reopen in Excel: <b>zero</b> value or visual difference <em>in every feature we claim to support</em>. (b) <b>Every byte we don't model survives identically</b> — pivot tables, macros, anything. (c) Ten non-technical people complete a real task of their own with no help from me.
+        <span style="display:block;margin-top:.5rem;padding-top:.5rem;border-top:1px dashed var(--line-strong);font-size:.83rem;color:var(--ink-soft)">Half (b) is what makes half (a) honest — without it, "zero diff on supported features" is satisfied by supporting almost nothing. <b>And the corpus is chosen and published before Stage 1 coding begins, then never changed</b>, or the person being graded picks the exam at grading time. This clause is the plan's main defence against the failure in §11.</span></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="stage-n">STAGE 2</div>
+    <div class="stage-b">
+      <h3>Deck — the proof the whole bet was right</h3>
+      <p class="when">~6–8 weeks</p>
+      <p>Presentations on the extracted Grain. This stage is the experiment: if Deck takes 6 weeks where Sheet took 12, the architecture is validated by evidence. If it takes another 12, the abstraction was wrong and we found out at the cheapest possible moment.</p>
+      <div class="gate"><b>Gate</b> The §3 example works end-to-end: edit a cell, the slide chart moves. Plus .pptx round-trips cleanly into PowerPoint.</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="stage-n">STAGE 3</div>
+    <div class="stage-b">
+      <h3>The bus — API, MCP, real sandbox</h3>
+      <p class="when">~3–5 weeks</p>
+      <p>Generate the HTTP API and MCP server from the command registry. Build the Rust capability broker, which is what upgrades "secure" from advisory to enforced.</p>
+      <div class="gate"><b>Gate</b> An off-the-shelf AI assistant, given only the MCP endpoint and no custom glue, takes a CSV and produces a finished deck. And a deliberately malicious test module fails to read a file it wasn't granted.</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="stage-n">STAGE 4</div>
+    <div class="stage-b">
+      <h3>The commons</h3>
+      <p class="when">ongoing</p>
+      <p>The front door: signed installers, one-click web version, module registry, published quality bar. Doc, Note, Form, Board follow — each one cheaper than the last if Stage 2 proved what it should.</p>
+      <div class="gate"><b>Gate</b> Someone who isn't me ships a module that passes the bar without my help.</div>
+    </div>
+  </div>
+
+  <p style="margin-top:1.5rem">Roughly: <strong>~6 months to two apps that beat every free alternative on quality, ~7 months to the agent layer.</strong> Then it compounds — or it doesn't, and Stage 2's gate will have told us honestly which.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="feedback">
+<div class="wrap">
+  <span class="snum">10 — YOUR OTHER MODELS</span>
+  <h2 class="sh">Where Codex earns its subscription</h2>
+  <p class="sub">Specific jobs where a second model is genuinely better than me checking my own work — not a vague "get feedback."</p>
+
+  <ol>
+    <li><strong>Differential formula testing.</strong> Codex generates thousands of adversarial workbooks — edge cases, date boundaries, error propagation, circular references. We run each through our engine and through headless LibreOffice as an independent oracle, and diff. This catches the failure mode that matters most: a formula engine that <em>looks</em> right and is quietly wrong in the 400th case. Fully automatable and it runs forever.</li>
+    <li><strong>Red-teaming the capability broker.</strong> Hand Codex the manifest spec and the broker source with one instruction: escape it. Adversarial by construction, which is the only way a security boundary gets tested honestly. Anything it finds becomes a permanent test.</li>
+    <li><strong>Design critique before every ship.</strong> A second model reviewing screenshots against a written rubric catches what I'm blind to — I've been staring at it, so I can't see it. This has repeatedly been the difference on your past deliverables.</li>
+    <li><strong>Round-trip fuzzing.</strong> Generate .xlsx, import, export, re-import, diff. Any drift is a bug that would otherwise reach a user as silent data loss — the single worst thing a free spreadsheet can do to its own reputation.</li>
+  </ol>
+
+  <p>If you want a third opinion in the loop, one more frontier model is worth it specifically for #2 and #3 — security and taste are where independent judgement pays. Not needed for the rest.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="risk">
+<div class="wrap">
+  <span class="snum">11 — RISK</span>
+  <h2 class="sh">What actually kills this</h2>
+
+  <div class="risk">
+    <div class="risk-h"><span class="sev h">Highest</span> It dies of ambition</div>
+    <p>By far the most likely outcome. Six half-apps, none good enough to use, enthusiasm gone. This is how nearly every project of this shape ends.</p>
+    <p class="mit"><b>Mitigation:</b> One app at a time, binary gates, and Stage 2 cannot begin until Stage 1's gate is green. The gate is the whole defence — the moment it becomes a judgement call, this risk is live again.</p>
+  </div>
+
+  <div class="risk">
+    <div class="risk-h"><span class="sev h">High</span> Quality plateaus at "good, but not Excel"</div>
+    <p>The exact failure you named. Free software that's 80% as good is worth roughly zero, because switching costs more than the licence.</p>
+    <p class="mit"><b>Mitigation:</b> The 25-file round-trip test and ten real users are pass/fail, and the "better than Excel" list in §8 means we're not competing on parity — we're competing where a clean start actually wins.</p>
+  </div>
+
+  <div class="risk">
+    <div class="risk-h"><span class="sev m">Medium</span> Formualizer stalls or churns</div>
+    <p>v0.7.1, ~1,266 downloads, one maintainer, 22 releases in six months. Any of: abandonment, breaking API churn, or a wrong answer we inherit.</p>
+    <p class="mit"><b>Mitigation:</b> Already priced in — swappable interface, two named fallbacks, and the dependency graph is ours regardless. This risk is capped at "swap a library," not "restart."</p>
+  </div>
+
+  <div class="risk">
+    <div class="risk-h"><span class="sev m">Medium</span> Nobody comes</div>
+    <p>Excellent software nobody finds. Distribution is the part engineers reliably underestimate.</p>
+    <p class="mit"><b>Mitigation:</b> Stage 4 is a real workstream, not an afterthought. And the wedge is a verifiable fact, not marketing: the leading modern open-source suite paywalls opening a file and printing. "Nothing here is ever gated" is a claim we can prove and they cannot match without changing their business model.</p>
+  </div>
+
+  <div class="risk">
+    <div class="risk-h"><span class="sev m">Medium</span> One person is the whole project</div>
+    <p>Bus factor of one, whether that's you or me.</p>
+    <p class="mit"><b>Mitigation:</b> Permissive licence, public repository, documented architecture from commit one. The project survives its author by construction — which is also the honest argument for D1.</p>
+  </div>
+
+  <h4>Checked and not a risk</h4>
+  <p style="font-size:.9rem"><strong>File format legality</strong> — .xlsx and .pptx are OOXML, published as ECMA-376 and ISO/IEC 29500, openly specified and implementable. LibreOffice has done it for fifteen years. <strong>Cost of running it</strong> — static downloads on Cloudflare, peer-to-peer sync, no accounts and therefore no database and no breach liability. Effectively $0/month. <strong>Windows install friction</strong> — SignPath Foundation signs qualifying open-source projects free, which clears SmartScreen; Azure Artifact Signing at $9.99/mo is the fallback.</p>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="appendix">
+<div class="wide">
+  <span class="snum">12 — APPENDIX</span>
+  <h2 class="sh">Verified facts</h2>
+  <p class="sub">Everything load-bearing in this plan, checked today against a primary source. Nothing here is from memory.</p>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>Claim</th><th>Verified value</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>Univer gates import/export &amp; printing behind Pro</td><td>Core Apache-2.0; Pro gates collaboration, <b>import/export</b>, <b>printing</b>, charts, pivot tables. 14k stars.</td><td class="mono">github.com/dream-num/univer</td></tr>
+      <tr><td>HyperFormula licence</td><td>GPLv3 <b>or</b> paid proprietary</td><td class="mono">hyperformula.handsontable.com/docs/guide/licensing</td></tr>
+      <tr><td>Formualizer licence</td><td>MIT OR Apache-2.0 — <span class="no">not used</span>, §7: a function library is a model</td><td class="mono">registry.npmjs.org/formualizer · crates.io</td></tr>
+      <tr><td>Formualizer maturity</td><td>v0.7.1 · created 2026-01-30 · updated 2026-07-02 · <b>1,266 downloads</b> · 22 versions · ~156 stars · single maintainer. <b>The v2 risk that §7 removed by deleting the dependency.</b></td><td class="mono">crates.io/api/v1/crates/formualizer</td></tr>
+      <tr><td>ExcelJS</td><td>MIT · v4.4.0 — <span class="no">rejected in v3.</span> Its workbook model silently drops unmodelled content, which cannot pass the Stage 1 gate.</td><td class="mono">registry.npmjs.org/exceljs</td></tr>
+      <tr><td>PptxGenJS</td><td>MIT · v4.0.1 — <span class="no">rejected in v3</span>, same reason.</td><td class="mono">registry.npmjs.org/pptxgenjs</td></tr>
+      <tr><td>Yjs</td><td>MIT · v13.6.31 — <span class="warn">algorithm only, never its document model</span>; deferred past Stage 2</td><td class="mono">registry.npmjs.org/yjs</td></tr>
+      <tr><td>SheetJS on npm is stale</td><td>npm <code>xlsx</code> frozen at 0.18.5; project moved to its own CDN. Apache-2.0. Moot now — we parse OOXML directly.</td><td class="mono">registry.npmjs.org/xlsx</td></tr>
+      <tr><td>Free Windows code signing</td><td>SignPath Foundation — free OV signing for qualifying OSS. Azure Artifact Signing $9.99/mo fallback.</td><td class="mono">learn.microsoft.com · signpath.org</td></tr>
+      <tr><td>miscellany.io status</td><td>Live, HTTP 200, behind Cloudflare. Currently "a collection of autonomous, AI-authored works."</td><td class="mono">checked 2026-08-02</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>What this plan deliberately does not do</h3>
+  <ul>
+    <li><strong>No Word replacement in year one.</strong> Rich text layout is a deceptively enormous problem, and Doc is the least differentiated of the three — everyone already has a free writing tool they tolerate.</li>
+    <li><strong>No cloud, no accounts, no server.</strong> Not to save money — because accounts create lock-in, liability, and a business model we don't want. Collaboration is peer-to-peer.</li>
+    <li><strong>No mobile apps in year one.</strong> The web version works on a phone. Native mobile is a separate discipline.</li>
+    <li><strong>No feature parity claim, ever.</strong> We compete on the 95% plus the things a clean start makes possible — not on a checklist against a thirty-year product.</li>
+  </ul>
+</div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p><b>Miscellany — Platform Plan</b> · drafted 2 August 2026 · for review before any implementation begins.</p>
+    <p>Awaiting seven decisions (§1). Say "all recommended" and the two-week build starts immediately.</p>
+  </div>
+</footer>
+
+</body>
+</html>

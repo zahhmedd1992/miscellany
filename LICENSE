@@ -1,0 +1,22 @@
+Mozilla Public License Version 2.0
+==================================
+
+Copyright (c) 2026 Zachary Ahmed
+
+This Source Code Form is subject to the terms of the Mozilla Public License,
+v. 2.0. If a copy of the MPL was not distributed with this file, You can
+obtain one at https://mozilla.org/MPL/2.0/.
+
+---
+
+Why MPL-2.0, in plain terms:
+
+  * You can use this for anything, including commercially, at no cost.
+  * You can build a proprietary product on top of it without opening your
+    own code.
+  * If you MODIFY a file from this project and ship it, you must publish
+    your changes to that file.
+
+That is the whole bargain: improvements to Miscellany itself come back,
+and anything you build on top of it stays yours. The full text of the
+licence is at the URL above and governs in case of any difference.

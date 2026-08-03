@@ -1,0 +1,17 @@
+{
+  "name": "miscellany-sheet",
+  "version": "0.1.0",
+  "description": "A spreadsheet that opens and saves real Excel files without wrecking them.",
+  "license": "MPL-2.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node test/core.test.mjs && node test/numfmt.test.mjs && node test/layout.test.mjs && node test/clipboard.test.mjs && node test/stylewrite.test.mjs && node test/structural.test.mjs && node test/corpus.read.test.mjs && node test/corpus.roundtrip.test.mjs && node --max-old-space-size=6144 test/agreement.mjs",
+    "test:fast": "node test/core.test.mjs && node test/numfmt.test.mjs && node test/layout.test.mjs && node test/clipboard.test.mjs && node test/stylewrite.test.mjs && node test/structural.test.mjs",
+    "corpus": "python corpus/build_corpus.py",
+    "licences": "node tools/check-licences.mjs",
+    "serve": "python -m http.server 9195 --directory src"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
