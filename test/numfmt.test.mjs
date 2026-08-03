@@ -104,6 +104,44 @@ t('zero section renders its literal', f(0, ACC).trim(), '-');
 t('accounting positive', f(1234, ACC).trim(), '1,234');
 t('accounting negative', f(-1234, ACC).trim(), '(1,234)');
 
+/* ---- a literal is never a token ----
+ *
+ * The pass that EMITS a section was always quote-aware. The passes that
+ * DECIDE — how much to scale by, where the decimal point is, how many digits
+ * are required — read the raw pattern, so any structural character sitting
+ * inside a quoted literal changed the number itself.
+ *
+ * Found by the second app: a slide KPI formatted `0.0"%"` showed 45.2 as
+ * 4520.0%. The percent was decoration; the engine spent it. */
+t('quoted % does not scale',      f(45.2, '0.0"%"'), '45.2%');
+t('escaped % does not scale',     f(45.2, '0.0\\%'), '45.2%');
+t('bare % still scales',          f(0.452, '0.0%'), '45.2%');
+t('quoted digits are not places', f(1234, '0" (2000)"'), '1234 (2000)');
+t('quoted dot is not a point',    f(1234.5, '0"."0'), '1235.');
+t('quoted comma does not scale',  f(1500, '0", thousand"'), '1500, thousand');
+t('real scaling comma still does',f(1234567, '#,##0,"k"'), '1,235k');
+t('quoted % after a real one',    f(0.452, '0.0%" of plan"'), '45.2% of plan');
+// A quoted bracket is a literal, not a [Red]-style modifier. Text only takes
+// the 4th section, so this is the shape the case actually occurs in.
+t('bracket literal survives',     formatValue(V.text('X'), '0;-0;0;"["@"]"').text, '[X]');
+
+/* ---- TEXT(value, format): the same engine, reachable from a formula ----
+ * numfmt existed from week one and no formula could call it, because
+ * formatting was something the grid VIEW did to a cell. A slide has no
+ * cells. */
+const { evaluate, parse } = await import('../src/core/formula.js');
+const ev = (src) => {
+  const api = { value: () => V.blank(), expand: () => [], range: () => [] };
+  return evaluate(parse(src), api, { sheet: 'main' });
+};
+t('TEXT formats',            ev('TEXT(1234.5,"$#,##0.00")').s, '$1,234.50');
+t('TEXT percent',            ev('TEXT(0.125,"0.0%")').s, '12.5%');
+t('TEXT date',               ev('TEXT(45000,"yyyy-mm-dd")').s, '2023-03-15');
+t('TEXT of text passes',     ev('TEXT("abc","0.00")').s, 'abc');
+t('TEXT needs two args',     ev('TEXT(1)').e, '#VALUE!');
+t('TEXT propagates errors',  ev('TEXT(1/0,"0.00")').e, '#DIV/0!');
+t('TEXT concatenates',       ev('"Total " & TEXT(425550,"$#,##0")').s, 'Total $425,550');
+
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
 if (fails.length) { for (const x of fails) console.log('  x ' + x + '\n'); process.exit(1); }
 console.log('  all green\n');

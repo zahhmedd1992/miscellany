@@ -237,6 +237,15 @@ import { FUNCTIONS } from './functions.js';
  * @param ctx   { sheet } — the sheet a bare reference belongs to
  */
 export function evaluate(ast, api, ctx = {}) {
+  // A bare range as the WHOLE formula is a binding, not an error: the node is
+  // "the cells B4:B16", which is what a chart or any range-shaped view needs.
+  // Nested inside an expression a bare range is still #VALUE!, because
+  // `=B4:B16 + 1` genuinely has no meaning.
+  if (ast && ast.t === 'range') {
+    const ids = api.expand(ast, ctx);
+    if (!ids.length) return V.err(ERR.REF);
+    return V.range(ids, ids.map((id) => api.value(id)));
+  }
   return ev(ast, api, ctx);
 }
 

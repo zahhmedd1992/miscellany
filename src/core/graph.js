@@ -82,8 +82,35 @@ export class Graph {
 
   /** Set a node from raw user input. Returns the set of ids that changed. */
   set(id, raw, ctx = {}) {
+    /* A change listener may not change the document.
+     *
+     * Recalculation notifies listeners; if a listener writes, it re-enters
+     * recalculation, which notifies again. Deck's first chart renderer did
+     * exactly this — it resolved a range by writing a scratch node while
+     * painting — and one keystroke became 496 nested repaints and a stack
+     * overflow. Nothing reported it: overflowing the stack leaves no room to
+     * run an error handler, so the console stayed empty and the page just
+     * went blank.
+     *
+     * So the invariant is enforced here, where it is cheap and loud. If
+     * something must update when a value changes, it is a NODE, not a
+     * side-effect in a listener. That is the whole design. */
+    if (this._emitting) {
+      throw new Error(
+        `[grain] a change listener tried to write ${id}. Listeners are ` +
+        `read-only — model derived state as a node so the scheduler owns it.`);
+    }
     const n = this.node(id, true);
     if (n.raw === raw) return new Set();
+    /* A literal's value is assigned below, BEFORE recalculation runs — so by
+     * the time recalc compares old against new it is comparing the new value
+     * with itself, decides nothing changed, and tells no one. Typing into a
+     * cell that nothing depends on therefore notified no listener at all.
+     *
+     * Sheet never noticed because it repaints itself after an edit. A SECOND
+     * view of the same document is what makes it matter, and a second view of
+     * the same document is the entire product. So remember what was here. */
+    const wasValue = n.value;
     // Journal the PREVIOUS raw input, not a whole-document snapshot. A
     // 741,000-cell workbook serialises to ~30MB, so snapshot-per-edit caps
     // undo depth at one or two before memory does. A delta costs bytes.
@@ -105,7 +132,10 @@ export class Graph {
 
     this._rewire(n, ctx);
     this._markDirty(id);
-    return this.recalc();
+    // a literal that genuinely changed is reported by us; a formula's own
+    // change is detected by recalc, which evaluates it against its old value
+    const seed = !n.ast && !sameValue(wasValue, n.value) ? new Set([id]) : null;
+    return this.recalc(seed);
   }
 
   /** Remove a node's content but keep its edges consistent. */
@@ -157,8 +187,12 @@ export class Graph {
    * already correct, so it counts as satisfied. Anything still unresolved
    * when we run out of ready nodes is in a cycle.
    */
-  recalc() {
-    if (this._dirty.size === 0) return new Set();
+  recalc(seed = null) {
+    if (this._dirty.size === 0) {
+      // nothing to compute, but a literal may still have changed
+      if (seed && seed.size) { this._epoch++; this._emit(seed); return seed; }
+      return new Set();
+    }
 
     const dirty = this._dirty;
     const indeg = new Map();
@@ -172,7 +206,7 @@ export class Graph {
     const ready = [];
     for (const [id, c] of indeg) if (c === 0) ready.push(id);
 
-    const changed = new Set();
+    const changed = seed ? new Set(seed) : new Set();
     let done = 0;
 
     while (ready.length) {
@@ -230,6 +264,7 @@ export class Graph {
       // a formula becomes 0, which is what a reader sees and what a chart
       // plots. A literal empty cell stays blank; only formulas are affected.
       if (!v || v.k === 'blank') return V.num(0);
+      // (a range value passes through untouched)
       return v;
     } catch (e) {
       // An evaluator throw is a bug in us, not in the user's formula.
@@ -242,7 +277,15 @@ export class Graph {
   /* ---- notification ---------------------------------------------------- */
 
   onChange(fn) { this._listeners.add(fn); return () => this._listeners.delete(fn); }
-  _emit(ids) { for (const fn of this._listeners) fn(ids, this._epoch); }
+
+  /* Listeners are told what changed; they must not change anything. See the
+   * guard in set(). The flag is cleared in a finally so a throwing listener
+   * cannot wedge the document shut. */
+  _emit(ids) {
+    this._emitting = true;
+    try { for (const fn of this._listeners) fn(ids, this._epoch); }
+    finally { this._emitting = false; }
+  }
 
   /* ---- persistence ----------------------------------------------------- */
 
@@ -306,6 +349,11 @@ export function sameValue(a, b) {
     case 'text':   return a.s === b.s;
     case 'bool':   return a.b === b.b;
     case 'error':  return a.e === b.e;
+    case 'range': {
+      if (a.ids.length !== b.ids.length) return false;
+      for (let i = 0; i < a.values.length; i++) if (!sameValue(a.values[i], b.values[i])) return false;
+      return true;
+    }
   }
   return false;
 }

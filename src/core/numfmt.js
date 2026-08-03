@@ -139,27 +139,67 @@ function renderLiterals(body, textValue) {
 
 /* ---- the number path -------------------------------------------------- */
 
+/** A structural skeleton of a section body: the same string with every
+ *  LITERAL character blanked to \0, so the passes that DECIDE things cannot
+ *  mistake a literal for a token.
+ *
+ *  The emit pass below was always quote-aware. The analysis passes were not,
+ *  and they are the ones that change the number: `0.0"%"` counted a percent
+ *  scaler and printed 45.2 as "4520.0%", `0" (2000)"` would count four
+ *  integer placeholders, `0"."0` would find a decimal point. One blind spot,
+ *  several symptoms — so it is fixed once, here, rather than per symptom.
+ *
+ *  Length is preserved deliberately: an offset found in the skeleton indexes
+ *  straight into the body. */
+function skeleton(body) {
+  let out = '';
+  for (let i = 0; i < body.length; i++) {
+    const c = body[i];
+    // \x escape, _x padding, *x fill — each consumes the next character too
+    if (c === '\\' || c === '_' || c === '*') {
+      out += i + 1 < body.length ? '\0\0' : '\0';
+      i++;
+      continue;
+    }
+    if (c === '"' || c === '[') {
+      const j = body.indexOf(c === '"' ? '"' : ']', i + 1);
+      const end = j < 0 ? body.length - 1 : j;
+      out += '\0'.repeat(end - i + 1);
+      i = end;
+      continue;
+    }
+    out += c;
+  }
+  return out;
+}
+
 function formatNumberSection(d, body) {
+  let skel = skeleton(body);
+
   // percent: each % multiplies by 100
-  const pct = (body.match(/%/g) || []).length;
+  const pct = (skel.match(/%/g) || []).length;
   let v = d;
   for (let i = 0; i < pct; i++) v = v.mul(new Decimal(100n, 0));
 
   // trailing commas before the decimal point scale by 1000 each
-  const scaleMatch = /([#0?](,+))(?=[^#0?]*$)/.exec(body.split('.')[0]);
+  const scaleMatch = /([#0?](,+))(?=[^#0?]*$)/.exec(skel.split('.')[0]);
   if (scaleMatch) {
     const n = scaleMatch[2].length;
     for (let i = 0; i < n; i++) v = v.div(new Decimal(1000n, 0));
-    body = body.replace(scaleMatch[1], scaleMatch[1][0]);
+    // Splice by INDEX, not String.replace — replace() takes the first textual
+    // occurrence, which need not be the one the regex matched.
+    const at = scaleMatch.index + 1;
+    body = body.slice(0, at) + body.slice(at + n);
+    skel = skel.slice(0, at) + skel.slice(at + n);
   }
 
   // does the integer part carry a thousands separator?
-  const intPat = body.split('.')[0];
+  const intPat = skel.split('.')[0];
   const useThousands = /[#0?],[#0?]/.test(intPat) || /,#{3}/.test(intPat);
 
   // decimal places = count of placeholders after the '.'
-  const dotIdx = body.indexOf('.');
-  const decPat = dotIdx < 0 ? '' : body.slice(dotIdx + 1);
+  const dotIdx = skel.indexOf('.');
+  const decPat = dotIdx < 0 ? '' : skel.slice(dotIdx + 1);
   const decPlaces = (decPat.match(/[0#?]/g) || []).length;
   const minDec = (decPat.match(/0/g) || []).length;
   const minInt = (intPat.match(/0/g) || []).length;
