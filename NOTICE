@@ -1,0 +1,17 @@
+Miscellany
+Copyright (c) 2026 Zachary Ahmed
+
+Licensed under the Mozilla Public License, v. 2.0. The full text is in LICENSE.
+
+Why MPL-2.0, in plain terms
+---------------------------
+
+  * Use this for anything, including commercially, at no cost.
+  * Build whatever you like on top of it. Your own files stay yours, under
+    whatever licence you choose.
+  * If you modify one of OUR files and ship it, publish that file's source.
+
+The point is that improvements to the shared foundation come back, while
+nothing stops you building a business on top of it.
+
+This is a summary, not the licence. Where the two differ, LICENSE governs.
