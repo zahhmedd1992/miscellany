@@ -219,7 +219,8 @@ export class DeckView {
       this.select(this.hit(e.clientX - r.left, e.clientY - r.top));
     });
     cv.addEventListener('dblclick', () => { if (this.sel) this.onEdit(this.sel); });
-    window.addEventListener('resize', () => this.resize());
+    // No window resize listener: the shell observes the pane and calls
+    // resize(). A listener here would also leak one per re-mount.
   }
 }
 

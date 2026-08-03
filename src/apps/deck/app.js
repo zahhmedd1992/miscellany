@@ -265,6 +265,7 @@ export const DeckApp = {
     return {
       view,
       draw() { view.draw(); renderStrip(); },
+      resize() { view.resize(); },
       focus() { cv.focus(); },
       capturing() { return editing !== null; },
       handleKey(e) {

@@ -81,7 +81,7 @@ def main():
                 """Ink and accent-colour pixel counts for a canvas region."""
                 r = region or "0,0,c.width,c.height"
                 return json.loads(ev(f"""(() => {{
-                  const c = document.getElementById('{canvas_id}');
+                  const c = document.querySelector('{canvas_id}');
                   const g = c.getContext('2d');
                   const d = g.getImageData({r}).data;
                   let ink = 0, accent = 0;
@@ -102,7 +102,7 @@ def main():
                 edited bar rises. Ratios between bars are what survive that.
                 """
                 return json.loads(ev("""(() => {
-                  const c = document.getElementById('slide');
+                  const c = document.querySelector('.deck-canvas');
                   const d = c.getContext('2d').getImageData(0,0,c.width,c.height).data;
                   const col = new Array(c.width).fill(0);
                   for (let y = 0; y < c.height; y++)
@@ -136,14 +136,14 @@ def main():
                 pg.screenshot(path=str(OUT / f"{name}.png"))
 
             before = read()
-            px_before = {"grid": pixels("grid"), "slide": pixels("slide")}
+            px_before = {"grid": pixels('.sh-grid'), "slide": pixels('.deck-canvas')}
             bars_before = bars()
             ev("__paints.deck = 0; __paints.grid = 0")
             shot("01-before")
 
             # --- the edit: real keystrokes into the real grid ---------------
             # click cell B6 (September revenue) and type a new number
-            box = pg.locator("#grid").bounding_box()
+            box = pg.locator(".sh-grid").bounding_box()
             # grid geometry comes from the app itself, not from guessed pixels
             xy = ev("""(() => {
               const g = miscellany.grid;
@@ -158,7 +158,7 @@ def main():
             pg.wait_for_timeout(400)
 
             after = read()
-            px_after = {"grid": pixels("grid"), "slide": pixels("slide")}
+            px_after = {"grid": pixels('.sh-grid'), "slide": pixels('.deck-canvas')}
             bars_after = bars()
             paints = json.loads(ev("JSON.stringify(__paints)"))
             shot("02-after")
@@ -211,6 +211,31 @@ def main():
 
             # ---- and what a person actually sees ---------------------------
             print("\n  on screen")
+            # A canvas drawn through a stale backing store looks fine in a
+            # screenshot thumbnail and is wrong by a factor of two: mounting
+            # the second pane halved the first one's width with no window
+            # resize event, so the grid kept a 3200px store in an 800px box
+            # and drew every column at half scale.
+            for sel in ('.sh-grid', '.deck-canvas'):
+                scale = json.loads(ev(f"""(() => {{
+                  const c = document.querySelector('{sel}');
+                  const r = c.getBoundingClientRect();
+                  return JSON.stringify({{ratio: c.width / r.width, dpr: devicePixelRatio}});
+                }})()"""))
+                t(f"{sel} backing store matches its box",
+                  abs(scale["ratio"] - scale["dpr"]) < 0.02, "True")
+                # ...and the box has to fill its pane. Checking only the
+                # backing store passes happily on a canvas that is half the
+                # height it should be, which is exactly what happened: a
+                # canvas is a replaced element, so height:auto took an
+                # intrinsic 2:1 ratio instead of stretching.
+                fill = json.loads(ev(f"""(() => {{
+                  const c = document.querySelector('{sel}');
+                  const p = c.closest('.gr-pane-body').getBoundingClientRect();
+                  const r = c.getBoundingClientRect();
+                  return JSON.stringify({{w: r.width / p.width, h: r.height / p.height}});
+                }})()"""))
+                t(f"{sel} fills its pane", fill["w"] > 0.98 and fill["h"] > 0.5, "True")
             # Painting must not mutate the document: if it does, drawing
             # re-enters drawing. Two apps, one edit — a handful of repaints,
             # not hundreds.

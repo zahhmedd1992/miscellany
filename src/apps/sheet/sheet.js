@@ -695,7 +695,10 @@ export class Grid {
       this.draw();
     }, { passive: false });
 
-    window.addEventListener('resize', () => this.resize());
+    // No window resize listener: the shell observes this grid's pane and
+    // calls resize(). The window is not what changes a pane's width — adding
+    // a second pane halves the first one with no window event at all — and a
+    // listener here would leak one per re-mount.
   }
 
   handleKey(e) {
