@@ -14,3 +14,4 @@ corpus/files/
 
 # build output — reproducible with: node tools/build-site.mjs
 dist/
+.wrangler/
