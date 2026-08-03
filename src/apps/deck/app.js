@@ -25,13 +25,14 @@ export const DeckApp = {
   profiles: {
     simple: {
       name: 'Simple mode',
-      toolbar: ['deck.slide.add', 'deck.text.add', 'deck.chart.add',
+      toolbar: ['file.save.doc', 'deck.slide.add', 'deck.text.add', 'deck.chart.add',
                 'edit.undo', 'edit.redo', 'deck.obj.delete',
                 'deck.text.bigger', 'deck.text.smaller', 'deck.text.bold'],
     },
     full: {
       name: 'Everything',
-      toolbar: ['file.new', 'deck.slide.add', 'deck.slide.delete',
+      toolbar: ['file.new', 'file.open.doc', 'file.save.doc',
+                'deck.slide.add', 'deck.slide.delete',
                 'deck.slide.next', 'deck.slide.prev',
                 'deck.text.add', 'deck.chart.add', 'deck.obj.delete',
                 'edit.undo', 'edit.redo',

@@ -67,13 +67,14 @@ export const SheetApp = {
   profiles: {
     simple: {
       name: 'Simple mode',
-      toolbar: ['file.open', 'file.save.xlsx', 'edit.undo', 'edit.redo', 'edit.copy',
+      toolbar: ['file.open', 'file.save.doc', 'edit.undo', 'edit.redo', 'edit.copy',
                 'edit.paste', 'fmt.bold', 'fmt.currency', 'fmt.percent', 'data.sum',
                 'data.sort', 'data.fill.down', 'edit.clear'],
     },
     full: {
       name: 'Everything',
-      toolbar: ['file.new', 'file.open', 'file.save.xlsx', 'file.save', 'file.export.csv',
+      toolbar: ['file.new', 'file.open.doc', 'file.save.doc',
+                'file.open', 'file.save.xlsx', 'file.save', 'file.export.csv',
                 'edit.undo', 'edit.redo', 'edit.copy', 'edit.cut', 'edit.paste', 'edit.clear',
                 'fmt.bold', 'fmt.italic', 'fmt.currency', 'fmt.percent', 'fmt.comma', 'fmt.plain',
                 'fmt.fill', 'fmt.textcolor', 'fmt.border.all', 'fmt.border.none',
