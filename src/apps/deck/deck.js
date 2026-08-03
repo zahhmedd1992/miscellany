@@ -40,6 +40,61 @@ export function slideOfId(id) {
 export const catsId = (objectId) => `${objectId}/cats`;
 
 /**
+ * How many slides the document has. DERIVED, never stored.
+ *
+ * It used to be a counter on the view, and that is a fact about the document
+ * kept somewhere the document is not: saving wrote every object faithfully
+ * and the count went nowhere, so reopening a three-slide deck showed one
+ * slide and silently buried the other two. The objects were all still there.
+ * You just could not get to them.
+ *
+ * The rule this breaks is the same one everywhere else in this codebase: if a
+ * view needs it, it comes from the document.
+ */
+export function slideCount(doc, deck = DECK) {
+  let max = 0;
+  for (const [id, node] of doc.nodes) {
+    if (!node.meta || !node.meta.object) continue;
+    if (!id.startsWith(deck + ':')) continue;
+    const n = slideOfId(id);
+    if (n >= 0) max = Math.max(max, n + 1);
+  }
+  return Math.max(1, max);
+}
+
+/**
+ * Move every object on slide `from` and after by `delta` slides.
+ *
+ * Inserting and deleting a slide in the middle both need this. Without it,
+ * deleting slide 1 of 3 left slides 2 and 3 where they were and just lowered
+ * a counter — so the last slide fell off the end of the deck while its
+ * objects sat in the document, unreachable.
+ *
+ * Ids are opaque to the graph, so "moving" is re-creating the node under a new
+ * id with the same input and meta.
+ */
+export function shiftSlides(doc, from, delta, deck = DECK) {
+  const items = [];
+  for (const [id, node] of doc.nodes) {
+    if (!id.startsWith(deck + ':')) continue;
+    const n = slideOfId(id);
+    if (n < from) continue;
+    items.push({ id, n, raw: doc.raw(id), meta: node.meta });
+  }
+  // Ascending when moving down, descending when moving up, so a move never
+  // lands on an id that has not been vacated yet.
+  items.sort((a, b) => (delta < 0 ? a.n - b.n : b.n - a.n));
+  for (const it of items) {
+    const name = it.id.slice(it.id.indexOf('/') + 1);
+    const next = objId(it.n + delta, name, deck);
+    doc.set(next, it.raw);
+    doc.setMeta(next, it.meta || null);
+    doc.set(it.id, '');
+    doc.setMeta(it.id, null);
+  }
+}
+
+/**
  * Put an object on a slide.
  *
  * Every range an object displays gets BOUND TO A NODE here, at definition
@@ -105,7 +160,6 @@ export class DeckView {
     this.doc = doc;
     this.deck = opts.deck || DECK;
     this.slide = 0;
-    this.slides = opts.slides || 1;
     this.sel = null;                       // selected object id
     this.onSelect = opts.onSelect || (() => {});
     this.onEdit = opts.onEdit || (() => {});
@@ -115,6 +169,9 @@ export class DeckView {
     this.resize();
     doc.onChange(() => this.draw());
   }
+
+  /** Read from the document, so it survives a save. See slideCount(). */
+  get slides() { return slideCount(this.doc, this.deck); }
 
   /** Every object on the current slide, in document order. */
   objects() {

@@ -104,6 +104,36 @@ try:
         t("and the value it should not have touched is intact",
           ev(f"miscellany.doc.raw({json.dumps(sel)})"), "=1+1")
 
+        # --- a saved deck must still have its slides ------------------------
+        # The slide count was a counter on the VIEW. Saving wrote every object
+        # faithfully and the count went nowhere, so a three-slide deck reopened
+        # showing one slide with the other two buried in the document,
+        # unreachable. It is derived from the objects now.
+        ev("miscellany.shell.run('deck.slide.add')")
+        pg.wait_for_timeout(150)
+        ev("miscellany.doc.set('deck:s3/title', 'THIRD')")
+        pg.wait_for_timeout(150)
+        t("three slides before saving", ev("miscellany.shell.surface.view.slides"), 3)
+        ev("miscellany.shell.save(true)")
+        pg.wait_for_timeout(300)
+        pg.reload(wait_until="networkidle")
+        pg.wait_for_timeout(700)
+        cdp = pg.context.new_cdp_session(pg)
+        t("three slides after reopening it", ev("miscellany.shell.surface.view.slides"), 3)
+        t("and the strip can reach them",
+          ev("document.querySelectorAll('.deck-sbtn').length"), 3)
+        t("slide 3's content survived", ev("miscellany.doc.raw('deck:s3/title')"), "THIRD")
+
+        # deleting a MIDDLE slide moves the ones after it down; lowering a
+        # counter instead left the last slide stranded past the end
+        ev("miscellany.shell.surface.view.go(1); miscellany.shell.run('deck.slide.delete')")
+        pg.wait_for_timeout(300)
+        t("deleting the middle slide leaves two", ev("miscellany.shell.surface.view.slides"), 2)
+        t("and slide 3 became slide 2", ev("miscellany.doc.raw('deck:s2/title')"), "THIRD")
+        ev("miscellany.shell.run('edit.undo')")
+        pg.wait_for_timeout(300)
+        t("undo puts the deleted slide back", ev("miscellany.shell.surface.view.slides"), 3)
+
         # --- the palette, by keyboard --------------------------------------
         pg.keyboard.press("Control+k")
         pg.wait_for_timeout(200)
