@@ -631,3 +631,73 @@ now. That is outward-facing and his call, so `dist/` is built and verified but n
 - [ ] Functions 58 → ~120.
 - [ ] Repo + dependency-license CI check before any dependency is added.
 - [ ] SignPath Foundation application once public (unknown lead time — start early).
+
+---
+
+# 2026-08-02 — Deck, and the shell (the "piecemeal" correction)
+
+Zach: *"I would prefer we continue building only from scratch. Piece meal approaches cut at
+the heart of this project."* He was right about where it had happened. The audit was blunt:
+`src/apps/` held ONE app, `app.js` was 1,339 lines of Sheet-specific wiring (bigger than the
+spreadsheet it wired), capabilities were `if (ctx.granted)` with nothing ever granting, and
+the MCP bus was a preview page. I had built a spreadsheet and called it a platform.
+
+## What the second app cost, honestly
+
+    Sheet's own code       1,339 -> 1,048     (entry point 1,339 -> 48)
+    core/shell.js                    620      written once, for every app
+    Deck, complete                   712      entry point 34, page 15
+    core reused unchanged          2,858
+
+The headline is the entry point; the real number is **291** — how much of Sheet turned out
+not to be about spreadsheets. The payoff is not in Sheet, it is that Deck got undo, redo,
+the command palette, Ctrl+K search, a generated toolbar, autosave and a status bar without
+implementing any of them.
+
+## Eight core bugs, every one found by building the SECOND app
+
+1. **TEXT() did not exist.** numfmt.js implemented the whole Excel format-code language from
+   week one and no formula could reach it — formatting was something the grid VIEW did to a
+   cell. A slide has no cells.
+2. **A quoted literal was read as a token.** The pass that EMITS a format was quote-aware;
+   every pass that DECIDES (percent scaling, scaling commas, decimal places, required digits)
+   read the raw pattern. `0.0"%"` printed 45.2 as **4520.0%**. Fixed once with a skeleton.
+3. **Painting mutated the document.** Deck resolved a chart's range by writing a scratch node
+   mid-paint, so drawing re-entered drawing: one keystroke → **496 nested repaints and a
+   stack overflow**. Nothing reported it — *an exhausted stack has no room to run an error
+   handler* — so the console stayed empty while both views went blank. The graph now refuses
+   a write from a change listener, by name.
+4. **Setting a literal notified nobody.** Its value is assigned before recalc, so recalc
+   compared the new value with itself. Sheet never noticed because it repaints itself; a
+   SECOND view would simply not have updated.
+5. **Formatting was invisible to undo** (`Graph.setMeta`). `node.meta` was assigned directly,
+   so the journal came back empty and Undo reverted the change BEFORE the one you meant.
+   Hit bold/fill/borders in Sheet and font size in Deck.
+6. **The shell owns layout, so it owns resize.** Mounting a second pane halves the first's
+   width and fires NO window resize event — the grid kept a 3200px backing store in an 800px
+   box and drew every column at half scale. ResizeObserver per pane now.
+7. **A canvas is a REPLACED element**: `height:auto` with top+bottom set does not stretch, it
+   takes the intrinsic w/h-attribute ratio. Slide canvas sat 400px tall in a 773px pane.
+8. **A saved deck lost every slide but the first.** The slide count was a counter on the
+   VIEW; objects saved fine and the count went nowhere. Derived from the document now.
+   Same counter also stranded the last slide when you deleted a middle one.
+
+## The lesson that keeps repeating
+
+**My own test was the bug ~10 times today**, and once catastrophically: `qa/live_update.py`
+passed 17 assertions on a page whose grid and slide were both blank, because every assertion
+read the MODEL. It now counts repaints and measures rendered pixels — September's bar against
+July's, 1.21 → 2.02, against 260000/128400 = 2.02 expected. Same shape as bug 7: the first
+guard checked the backing store matched the box, on a box that was itself wrong.
+
+## Entry points (build output moved sheet/ -> app/)
+
+`/index.html` front door · `/app/` Sheet · `/app/deck.html` Deck · `/app/compose.html` both
+over one document. Sheet/Deck/Both are three tabs; `shell.mount(root, ['sheet','deck'])` is
+the whole composition.
+
+## Still open
+- [ ] MCP/HTTP bus is still only a rendered preview — nothing serves it.
+- [ ] Deploying `dist/` to live miscellany.io (would replace Open Signal front door) — Zach's call.
+- [ ] Tauri desktop build + SignPath signing.
+- [ ] Deck cannot open or save .pptx yet; a deck lives in localStorage or inside a workbook.
