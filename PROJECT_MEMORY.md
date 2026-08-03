@@ -767,3 +767,59 @@ model. Second worst: a canvas-size guard that checked the backing store matched
 the box — on a box that was itself wrong. Fix in both cases: measure what a
 person would see, and DERIVE expected numbers from the document instead of
 hand-computing constants into the test.
+
+---
+
+# 2026-08-02 — LIVE at miscellany.io
+
+**Zach's go-ahead:** *"you can retire opensignal and post the latest."*
+
+## What is where
+
+| URL | Serves |
+|---|---|
+| `https://miscellany.io/` | the platform front door |
+| `https://miscellany.io/app/` | Sheet |
+| `https://miscellany.io/app/deck` | Deck (`.html` 308-redirects here) |
+| `https://miscellany.io/app/compose` | Sheet + Deck over one document |
+| `https://opensignal.miscellany.io` | **Open Signal — still live, untouched** |
+
+- Root = CF **Pages project `miscellany-portal`**, production branch `main`,
+  zone `<cloudflare-zone-id>`, account `<cloudflare-account-id>`.
+- Deploy: `wrangler pages deploy dist --project-name=miscellany-portal --branch=main`
+  with `CLOUDFLARE_API_TOKEN` from `a local .env file`.
+  **Always purge the zone cache after** (`purge_everything`).
+- I did **not** delete the `open-signal` Pages project or its DNS. Retiring the front
+  door ≠ deleting the publication, and only one of those is reversible.
+
+## Two things a terminal cannot see
+
+1. **curl returned 200 for every entry point while all three apps were broken.**
+   `/app/app.js` came back as `text/html`; `deck.html`/`compose.html` were still
+   serving the OLD Open Signal page. Cause: CF Pages **308-redirects `.html` to the
+   extensionless form**, and the edge still held responses from when those paths did
+   not exist. Only loading the live URLs in a real browser and reading the console
+   found it. → reinforces [[reference-cloudflare-stale-assets]].
+
+2. **Cloudflare injected an analytics beacon into every page** (`static.cloudflareinsights.com`),
+   at the edge, with no change of ours — on a site whose headline promise is *"your file
+   never leaves your machine."* Not shipping code that phones home is necessary and **not
+   sufficient**.
+
+## The fix: the browser enforces the promise
+
+`tools/build-site.mjs` now generates `dist/_headers` with
+`script-src 'self'; connect-src 'self'` (+ nosniff, no-referrer, permissions-policy,
+COOP). **There is not one inline script in the project**, so this costs nothing.
+Verified live: the beacon is attempted and **blocked**, 0 bytes leave.
+
+⚠️ **Open for Zach:** the beacon is blocked but still *injected*, so devtools logs a CSP
+refusal on every load. One toggle in the CF dashboard (Web Analytics → automatic setup)
+removes it at source. My token has no RUM scope (`Authentication error` on `/rum/site_info`).
+
+## Front door rewritten
+Deck section, one-document-format section, the reuse claim as a checkable number,
+and 3 new "Honest about what is missing" cards (no `.pptx`, Sheet charts read-only,
+API generated but not served). Counts corrected to 76 functions / 679 assertions.
+Links stay `.html` on purpose — extensionless only works on Pages, `.html` works when
+you download the folder and open it locally.
