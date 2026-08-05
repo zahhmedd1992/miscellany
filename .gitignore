@@ -7,6 +7,7 @@ Thumbs.db
 # corpus/corpus.json, which IS committed — that file is the lock, and
 # build_corpus.py re-fetches and re-verifies every hash.
 corpus/files/
+corpus/pdf/files/
 
 # scratch output
 /tmp/
