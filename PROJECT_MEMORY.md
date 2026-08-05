@@ -770,6 +770,28 @@ hand-computing constants into the test.
 
 ---
 
+# 2026-08-05 — LOAN LIVE: tally 8. THE WHOLE RECOMMENDED SEQUENCE IS SHIPPED.
+
+`site/tool/loan.html` (single-file small). 30/360 US w/ EOM rules · A/360 ·
+A/365 · integer cents, stated half-up rule · extras + lump scenarios (savings
+COMPUTED vs the no-extra schedule) · 0% safe · year subtotals · print CSS.
+**Exam: independent Python mirror agrees on EVERY ROW of 8 trap configs;
+numpy-financial (3rd leg) agrees on every payment; Σprincipal == loan to the
+penny; payment == interest+principal each row.** The only divergence found
+was the ORACLE forgetting `prev = date` (accrual window never advanced —
+compounding day counts). ~9th "my instrument was the bug" of the project.
+Deployed, purged, live-verified (tally 8, header CSP alone, download
+byte-identical + computes from disk, zero net attempts).
+
+**Standing observation: a MIDNIGHT AUTO-COMMIT JOB commits AND pushes this
+repo (author Zach, "auto-commit: <date> 00:00"). Not in schtasks under
+git/commit/backup — origin unidentified. It swept 30MB of corpus PDFs into
+the public repo before the ignore existed (now untracked; history keeps
+them — public-domain gov docs, bloat only, judged not worth a force-push).
+Keep the tree ignore-clean by midnight.**
+
+---
+
 # 2026-08-05 — PDF TOOLKIT LIVE: tally 6 → 7 (the flagship shipped)
 
 `/app/pdf.html` — merge, split/extract, reorder, rotate, delete, strip

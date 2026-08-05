@@ -1,6 +1,13 @@
 # IDEA_QUEUE — what ships next on miscellany.io
 
-Established 2026-08-04. Rough list for reaction, not a commitment. Tally today: **2** (Sheet, Deck).
+Established 2026-08-04. Rough list for reaction, not a commitment.
+
+**Status 2026-08-05: the recommended next-5 sequence is FULLY SHIPPED — tally 8.**
+✅ Passwords · ✅ QR · ✅ Verify + Encrypt · ✅ PDF toolkit (v1: merge/split/
+extract/reorder/rotate/delete/strip-metadata) · ✅ Loan (amortization).
+Next up from this queue when Zach green-lights: PDF v2 items (thumbnails,
+outlines, page numbers, compress), Redact, Metadata inspect/strip,
+Image convert, Diff — or Board as the next Grain app.
 
 ---
 
