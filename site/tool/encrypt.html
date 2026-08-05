@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<!-- This policy is enforced by your browser, even when this file is opened
+     from your own disk: no connections, no remote scripts, nothing loaded
+     from anywhere. The page cannot send anything, because the browser will
+     refuse to let it. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Encrypt — Miscellany</title>
+<meta name="description" content="Password-protect any file with AES-256 before you email it — entirely on your machine, no upload, no account. This one file is the whole program and its own source." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%239A3B1B'/%3E%3Ctext x='8' y='12' text-anchor='middle' font-family='Georgia,serif' font-size='11' font-weight='bold' fill='%23FBF8F2'%3EM%3C/text%3E%3C/svg%3E" />
+<style>
+/* System fonts only, nothing loaded from anywhere. */
+:root{
+  --paper:#FBF8F2; --paper-2:#F5F0E6; --card:#FFFDF8;
+  --ink:#211C16; --ink-2:#4A4338; --muted:#6C6356;
+  --line:#E7DFD0; --line-2:#DAD0BC;
+  --accent:#9A3B1B; --accent-2:#7E2F14; --accent-tint:#F3E7DF;
+  --green:#2F5D3A; --bad:#8C2B2B;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono","Segoe UI Mono",Menlo,Consolas,monospace;
+  --measure:44rem;
+  --gutter:clamp(1.15rem,5vw,2.5rem);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--sans);font-size:17px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--measure);margin:0 auto;padding:0 var(--gutter)}
+a{color:var(--accent-2);text-underline-offset:2px}
+
+header{
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,#FFFDF8,var(--paper));
+  padding:clamp(1.6rem,4.5vw,2.4rem) 0 clamp(1.4rem,3.5vw,2rem);
+}
+.brand{
+  font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--muted);font-weight:700;margin:0 0 .9rem;
+}
+.brand a{color:inherit;text-decoration:none}
+.brand a:hover{color:var(--accent-2)}
+h1{
+  font-weight:700;font-size:clamp(1.7rem,5vw,2.4rem);line-height:1.08;
+  letter-spacing:-.03em;margin:0 0 .45rem;
+}
+.dek{margin:0;color:var(--ink-2);font-size:.98rem;max-width:38rem}
+
+main{padding:clamp(1.8rem,4.5vw,2.6rem) 0 1rem}
+
+.tabs{display:flex;gap:.5rem;margin:0 0 1rem}
+.tab{
+  background:none;border:1px solid var(--line-2);border-radius:4px;color:var(--ink-2);
+  font:inherit;font-size:.92rem;font-weight:600;padding:.42rem .95rem;cursor:pointer;
+}
+.tab[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.tab:not([aria-pressed="true"]):hover{background:var(--accent-tint);border-color:var(--accent)}
+
+fieldset{
+  border:1px solid var(--line);border-radius:6px;background:var(--card);
+  padding:1rem 1.1rem 1.15rem;margin:0 0 1.1rem;
+}
+legend{font-size:.8rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:0 .4rem}
+.field{display:flex;flex-direction:column;gap:.2rem;margin:0 0 .75rem}
+.field:last-child{margin-bottom:0}
+.field span{font-size:.82rem;font-weight:600;color:var(--ink-2)}
+.field input[type=password],.field input[type=text]{
+  font:inherit;font-size:.95rem;padding:.5rem .6rem;border:1px solid var(--line-2);
+  border-radius:4px;background:#fff;color:var(--ink);width:100%;font-family:var(--mono);
+}
+input[type=file]{font-size:.9rem}
+.btn{
+  display:inline-block;background:var(--accent);color:#fff;text-decoration:none;
+  padding:.55rem 1.15rem;border-radius:4px;font-weight:600;font-size:.95rem;
+  border:1px solid var(--accent);font-family:var(--sans);cursor:pointer;
+}
+.btn:hover{background:var(--accent-2);border-color:var(--accent-2)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.status{margin:.8rem 0 0;font-size:.9rem}
+.status.ok{color:var(--green);font-weight:600}
+.status.err{color:var(--bad);font-weight:600}
+.status.busy{color:var(--ink-2)}
+.hint{font-size:.83rem;color:var(--muted);margin:.5rem 0 0}
+.hint.warn{color:var(--bad)}
+
+.trust{margin:1.9rem 0 0;border-top:1px solid var(--line);padding-top:1.3rem}
+.trust summary{cursor:pointer;font-weight:650;font-size:.95rem;color:var(--ink-2)}
+.trust p{font-size:.88rem;color:var(--ink-2);margin:.7rem 0 0;max-width:40rem}
+code{
+  font-family:var(--mono);font-size:.85em;background:var(--paper-2);
+  border:1px solid var(--line);border-radius:2px;padding:.05em .3em;white-space:nowrap;
+}
+footer{margin-top:2.6rem;padding:1.6rem 0 2.6rem;background:var(--paper-2);border-top:1px solid var(--line-2);font-size:.85rem;color:var(--muted)}
+footer p{margin:0 0 .4rem}
+footer a{color:var(--accent-2)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <p class="brand"><a href="https://miscellany.io/">Miscellany</a></p>
+    <h1>Encrypt</h1>
+    <p class="dek">Password-protect a file before you email it, put it in a shared drive, or leave it on a USB stick. Real encryption &mdash; AES&#8209;256 &mdash; done entirely on your machine. Send the locked file one way and the passphrase another, and only the person holding both can open it.</p>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <div class="tabs" role="group" aria-label="Direction">
+      <button class="tab" id="tab-enc" type="button" aria-pressed="true">Lock a file</button>
+      <button class="tab" id="tab-dec" type="button" aria-pressed="false">Unlock a file</button>
+    </div>
+
+    <fieldset id="panel-enc">
+      <legend>Lock</legend>
+      <div class="field"><span>File to protect (up to 1&nbsp;GB)</span><input type="file" id="e-file" /></div>
+      <div class="field"><span>Passphrase</span><input type="password" id="e-pass" autocomplete="new-password" /></div>
+      <div class="field"><span>Passphrase, again</span><input type="password" id="e-pass2" autocomplete="new-password" /></div>
+      <button class="btn" id="e-go" type="button">Encrypt and download</button>
+      <p class="status" id="e-status" aria-live="polite"></p>
+      <p class="hint" id="e-hint">The locked copy is named <code>yourfile.sealed</code>. A short passphrase undoes strong encryption &mdash; the <a href="https://miscellany.io/tool/passwords.html">Passwords</a> tool makes a good one.</p>
+    </fieldset>
+
+    <fieldset id="panel-dec" hidden>
+      <legend>Unlock</legend>
+      <div class="field"><span>The locked file (<code>.sealed</code>)</span><input type="file" id="d-file" /></div>
+      <div class="field"><span>Passphrase</span><input type="password" id="d-pass" autocomplete="current-password" /></div>
+      <button class="btn" id="d-go" type="button">Decrypt and download</button>
+      <p class="status" id="d-status" aria-live="polite"></p>
+      <p class="hint">The original file comes back with its original name. A wrong passphrase decrypts nothing at all &mdash; there is no partial result to leak.</p>
+    </fieldset>
+
+    <details class="trust">
+      <summary>Why you can trust this page</summary>
+      <p><strong>Your file and your passphrase never leave your machine.</strong> The security policy at the top of this file makes your browser refuse every kind of network connection &mdash; enforcement, not a promise. &ldquo;Encrypt online&rdquo; sites that upload your file first are asking you to trust a stranger with the very thing you are trying to protect.</p>
+      <p><strong>The cryptography is the standard one, done by your browser.</strong> AES&#8209;256&#8209;GCM for the sealing, PBKDF2 with 600,000 rounds of SHA&#8209;256 to turn your passphrase into a key &mdash; both performed by the browser&rsquo;s built-in, audited WebCrypto engine. This page contains no home-made cipher, only the plumbing, and you can read all of it.</p>
+      <p><strong>Tampering is detected, not just discouraged.</strong> GCM is authenticated encryption: change so much as one byte of the locked file and decryption refuses outright rather than quietly producing garbage.</p>
+      <p><strong>The file format is documented inside this file,</strong> byte by byte, so anyone can decrypt a <code>.sealed</code> file independently with standard tools &mdash; you are never locked into this page. Keep a copy of it with your archives; it will work offline forever.</p>
+      <p><strong>You are reading the whole program.</strong> This one file is the entire tool and its own source &mdash; open it in a text editor, or attach it to an AI and ask what it does. What you check is what runs, because there is only the one file.</p>
+    </details>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><strong>Miscellany</strong> &mdash; free, modular, and yours. <a href="https://miscellany.io/">All tools</a></p>
+    <p><a href="https://github.com/zahhmedd1992/miscellany">GitHub</a> &middot; <a href="https://mozilla.org/MPL/2.0/">MPL-2.0</a></p>
+  </div>
+</footer>
+
+<script>
+/* Encrypt — a Miscellany tool.               https://miscellany.io
+ *
+ * This file is the complete program and its own source. It makes no network
+ * connections of any kind, and the Content-Security-Policy at the top of
+ * the file instructs the browser to refuse any — enforcement, not a promise.
+ * It stores nothing: no passphrase, no file, no history.
+ *
+ * Licence: MPL-2.0 (https://mozilla.org/MPL/2.0/), part of
+ * https://github.com/zahhmedd1992/miscellany
+ *
+ * THE .sealed FORMAT, so you are never dependent on this page to decrypt:
+ *
+ *   bytes 0..6    magic "MSEAL1\n"  (4D 53 45 41 4C 31 0A)
+ *   bytes 7..22   salt, 16 random bytes
+ *   bytes 23..34  IV, 12 random bytes
+ *   bytes 35..    AES-256-GCM ciphertext with the 16-byte tag appended
+ *
+ *   key       = PBKDF2-HMAC-SHA256(passphrase UTF-8, salt, 600000 rounds, 32 bytes)
+ *   plaintext = [4-byte little-endian name length][file name UTF-8][file bytes]
+ *
+ * Any standard cryptography library reproduces this in a few lines. The
+ * 600,000 PBKDF2 rounds follow current OWASP guidance and cost an attacker
+ * that many hashes per guess; they cost you about a second, once.
+ */
+'use strict';
+
+const MAGIC = new Uint8Array([0x4D, 0x53, 0x45, 0x41, 0x4C, 0x31, 0x0A]); // MSEAL1\n
+const ROUNDS = 600000;
+const MAX_BYTES = 1024 * 1024 * 1024; // GCM here is one-shot; stated, not hidden
+
+async function deriveKey(passphrase, salt, usage) {
+  const material = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(passphrase), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', hash: 'SHA-256', salt, iterations: ROUNDS },
+    material, { name: 'AES-GCM', length: 256 }, false, [usage]);
+}
+
+async function seal(file, passphrase, onStage) {
+  if (file.size > MAX_BYTES) throw new Error('Files over 1 GB are not supported — that is a real limit of one-shot encryption in a page, stated rather than discovered.');
+  onStage('Reading the file…');
+  const fileBytes = new Uint8Array(await file.arrayBuffer());
+  const nameBytes = new TextEncoder().encode(file.name);
+  const plain = new Uint8Array(4 + nameBytes.length + fileBytes.length);
+  new DataView(plain.buffer).setUint32(0, nameBytes.length, true);
+  plain.set(nameBytes, 4);
+  plain.set(fileBytes, 4 + nameBytes.length);
+
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  onStage('Deriving the key — 600,000 rounds…');
+  const key = await deriveKey(passphrase, salt, 'encrypt');
+  onStage('Encrypting…');
+  const cipher = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plain));
+
+  const out = new Uint8Array(MAGIC.length + 16 + 12 + cipher.length);
+  out.set(MAGIC, 0); out.set(salt, 7); out.set(iv, 23); out.set(cipher, 35);
+  return out;
+}
+
+async function unseal(bytes, passphrase, onStage) {
+  if (bytes.length < 35 + 16 || !MAGIC.every((b, i) => bytes[i] === b)) {
+    throw new Error('That is not a .sealed file from this tool.');
+  }
+  const salt = bytes.subarray(7, 23), iv = bytes.subarray(23, 35), cipher = bytes.subarray(35);
+  onStage('Deriving the key — 600,000 rounds…');
+  const key = await deriveKey(passphrase, salt, 'decrypt');
+  onStage('Decrypting…');
+  let plain;
+  try {
+    plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, cipher));
+  } catch {
+    throw new Error('Wrong passphrase — or the file has been altered. Nothing was decrypted.');
+  }
+  const nameLen = new DataView(plain.buffer, plain.byteOffset).getUint32(0, true);
+  if (4 + nameLen > plain.length) throw new Error('The file is damaged.');
+  const name = new TextDecoder().decode(plain.subarray(4, 4 + nameLen));
+  return { name, bytes: plain.subarray(4 + nameLen) };
+}
+
+/* ---- page wiring --------------------------------------------------------- */
+
+const $ = (id) => document.getElementById(id);
+
+function download(name, bytes) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+function status(el, cls, text) { el.className = 'status ' + cls; el.textContent = text; }
+
+$('e-go').addEventListener('click', async () => {
+  const st = $('e-status');
+  const file = $('e-file').files[0];
+  const p1 = $('e-pass').value, p2 = $('e-pass2').value;
+  if (!file) return status(st, 'err', 'Choose a file first.');
+  if (!p1) return status(st, 'err', 'Enter a passphrase.');
+  if (p1 !== p2) return status(st, 'err', 'The two passphrases differ.');
+  $('e-go').disabled = true;
+  try {
+    const out = await seal(file, p1, (s) => status(st, 'busy', s));
+    download(file.name + '.sealed', out);
+    status(st, 'ok', 'Done — ' + file.name + '.sealed is in your downloads. Send the passphrase by a different channel than the file.');
+  } catch (err) {
+    status(st, 'err', err.message);
+  } finally {
+    $('e-go').disabled = false;
+  }
+});
+
+$('e-pass').addEventListener('input', () => {
+  const hint = $('e-hint');
+  if ($('e-pass').value && $('e-pass').value.length < 10) {
+    hint.className = 'hint warn';
+    hint.innerHTML = 'That passphrase is short. AES-256 cannot save a guessable passphrase — the <a href="https://miscellany.io/tool/passwords.html">Passwords</a> tool makes a strong one.';
+  } else {
+    hint.className = 'hint';
+    hint.innerHTML = 'The locked copy is named <code>yourfile.sealed</code>. A short passphrase undoes strong encryption &mdash; the <a href="https://miscellany.io/tool/passwords.html">Passwords</a> tool makes a good one.';
+  }
+});
+
+$('d-go').addEventListener('click', async () => {
+  const st = $('d-status');
+  const file = $('d-file').files[0];
+  if (!file) return status(st, 'err', 'Choose the .sealed file first.');
+  if (!$('d-pass').value) return status(st, 'err', 'Enter the passphrase.');
+  $('d-go').disabled = true;
+  try {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const { name, bytes: plain } = await unseal(bytes, $('d-pass').value, (s) => status(st, 'busy', s));
+    download(name, plain);
+    status(st, 'ok', 'Done — ' + name + ' is in your downloads, exactly as it was.');
+  } catch (err) {
+    status(st, 'err', err.message);
+  } finally {
+    $('d-go').disabled = false;
+  }
+});
+
+function setTab(t) {
+  $('tab-enc').setAttribute('aria-pressed', String(t === 'enc'));
+  $('tab-dec').setAttribute('aria-pressed', String(t === 'dec'));
+  $('panel-enc').hidden = t !== 'enc';
+  $('panel-dec').hidden = t !== 'dec';
+}
+$('tab-enc').addEventListener('click', () => setTab('enc'));
+$('tab-dec').addEventListener('click', () => setTab('dec'));
+
+// Exposed deliberately, so you can inspect or drive it from the console.
+window.misc = { seal, unseal, deriveKey, MAGIC, ROUNDS };
+</script>
+</body>
+</html>

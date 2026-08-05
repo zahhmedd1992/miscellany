@@ -770,6 +770,91 @@ hand-computing constants into the test.
 
 ---
 
+# 2026-08-04 — FOUR SINGLE-FILE TOOLS SHIPPED LIVE: tally 2 → 6
+
+Zach set /goal "proceed with the recommended sequence." Shipped **Passwords, QR,
+Verify, Encrypt** — each ONE self-contained html in `site/tool/`, served at
+`/tool/<slug>` and downloadable at `/download/miscellany-<slug>.html` as the
+SAME BYTES (stronger than Sheet's story: the page you use IS the file you
+download IS the source — nothing bundled, nothing to reconcile).
+
+## Architecture decisions that will outlive these four tools
+
+- **Two-layer CSP.** In-file `<meta>` policy (`default-src 'none'; script-src
+  'unsafe-inline'…`) makes even the DOWNLOADED copy refuse the network — closes
+  the round-4 "no CSP on file://" hole. Served copy gets a per-path `_headers`
+  rule: `! Content-Security-Policy` detaches the site-wide `script-src 'self'`
+  (which would kill inline scripts), replaced with `script-src 'sha256-<hash of
+  the file's one script>'` — an edge-injected inline script does not match and
+  DOES NOT RUN. **`!` detach verified live via headers_array(): exactly one CSP
+  header per tool path.** Both path forms again (.html 308s).
+- **Build guards extended** (all proven by firing): forbidden-token scan on the
+  tool file bytes, exactly-one-`<script>` check, meta-CSP-present check, CRLF
+  check (the hash must match served bytes). TOOLS entries with `file:` skip the
+  closure walk; downloads _headers rules cover them via the same TOOLS map.
+- **QA pattern for smalls**: patchright + CDP MAIN-world evaluate (the page's
+  own meta CSP blocks playwright's eval-based wait_for_function — poll via CDP
+  instead), independent-implementation oracles, both http and file://, clicked
+  downloads byte-compared then run from disk.
+
+## The graded exams (each caught real bugs)
+
+- **QR**: from-scratch ISO 18004 (GF(256)/RS, versions 1–40, 4 penalty rules,
+  BCH format/version). Exam = OpenCV + zbar decoding ALL 160 version×level
+  combos → **160/160 exact**, plus module-for-module identity with python-qrcode
+  at v1 and v7. THREE traps: (1) alignment-pattern skip tested `fn[centre]`,
+  which silently dropped every timing-line pattern from v7 up — caught by the
+  geometry-vs-table cross-check (free modules ≡ table codewords, 40/40); (2)
+  **format info is placed MSB-first from (8,0) — LSB-first produces a symbol no
+  decoder reads while looking identical in a screenshot**; (3) zbar TRANSCODES
+  UTF-8 it guesses is Shift-JIS (¥ for backslash) — cv2 is the UTF-8 oracle.
+- **Passwords**: uniform-over-constrained-set generation (rejection sampling),
+  entropy = exact BigInt inclusion–exclusion count — matches an independent
+  Python implementation to 6 decimals in every configuration; chi-square clean.
+  EFF large wordlist embedded (CC BY 3.0, attributed; structurally verified
+  7776 words = complete 6^5 dice space).
+- **Verify**: streaming SHA-256/SHA-1 from FIPS 180-4 (WebCrypto can't stream
+  — a 6 GB ISO must not OOM); every displayed hash equals hashlib across
+  0/1/55/56/63/64/65-byte padding edges and multi-slice files; in-page
+  self-test (vectors + WebCrypto agreement) shown to the user.
+  Trap: **a `<label>` is display:inline — the padded drop zone painted as a
+  fragmented inline box** until display:block. Screenshot caught it; the DOM
+  probe named it.
+- **Encrypt**: AES-256-GCM + PBKDF2-SHA256×600k, format documented byte-by-byte
+  in the file. Exam = INTEROP BOTH WAYS with Python `cryptography` (page-sealed
+  → python opens; python-sealed → page opens through the real UI, UTF-8 name);
+  tamper (one flipped byte) and wrong passphrase rejected cleanly. 1 GB stated
+  limit (one-shot GCM), stated not discovered.
+
+## Live verification (urllib gets 403 — CF challenges non-browser agents; all
+checks ride the real browser): tally 6, six tools function at miscellany.io,
+platform apps still paint, all four clicked downloads byte-identical to the
+build and working from disk with zero network attempts. 153 platform tests
+still green; licence gate clean.
+
+Next per IDEA_QUEUE sequence: **PDF toolkit** (flagship), then amortization.
+
+---
+
+# 2026-08-04 — IDEA_QUEUE.md established
+
+Zach asked for a rough idea list of what ships next. Wrote `IDEA_QUEUE.md` (project root):
+a 5-criterion filter (broken status quo · fully local · narrow+flawless · **no maintenance
+decay** · no inherited models), ~25 candidates in two tracks — Track B single-file tools
+(private file surgery / subscription-scam counterparts / bank-grade calculators / text+data /
+printables) and Track A Grain apps (Board → Note → Form → Doc-deferred) — an explicit
+anti-queue (currency FX, tax tables, diagramming, video, comms), and a recommended next-5:
+password gen → QR → hash+encrypt → **PDF toolkit (flagship)** → amortization. Awaiting
+Zach's reaction; nothing queued as committed.
+
+Landscape check (08.04): client-side PDF tools exist (TinyPDFTools, ClientPDF, Brevio…)
+but ALL stand on pdf-lib — which rebuilds files and drops what it doesn't model, the
+ExcelJS pattern. Preserve-unknown via PDF incremental updates + download-is-the-source
+remain unclaimed ground. Single-file HTML tools are a hobbyist genre (HN, GitHub
+collections) with no quality bar or brand — format validated, position open.
+
+---
+
 # 2026-08-02 — LIVE at miscellany.io
 
 **Zach's go-ahead:** *"you can retire opensignal and post the latest."*

@@ -17,4 +17,7 @@ dist/
 .wrangler/
 
 # local pre-edit snapshots, e.g. site/index (08.04.26)_v1.html
-*(??.??.??)_v?.html
+*(??.??.??)_v?.*
+
+# QA harness output: screenshots, downloaded artefacts, temp blobs
+qa/out/
