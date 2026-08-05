@@ -214,11 +214,11 @@ WHY THIS FILE EXISTS
        thinking about using. Does it send my data anywhere, or do
        anything else I should worry about?"
 
-  SAVE THIS PAGE AND ATTACH THE FILE. That is the reliable way, and it is
-  worth the extra ten seconds: this file is long, and pasting the link
-  instead makes the AI fetch it - which several of them do only in part.
-  A review of the first half of the code reads exactly like a review of
-  all of it. Attaching the file has no such limit.
+  SAVE THIS PAGE (Ctrl+S, or Cmd+S on a Mac) AND ATTACH THE FILE. That is
+  the reliable way, and it is worth the extra ten seconds: this file is
+  long, and pasting the link instead makes the AI fetch it - which several
+  of them do only in part. A review of the first half of the code reads
+  exactly like a review of all of it. Attaching the file has no such limit.
 
   Three things it should be able to confirm:
 
