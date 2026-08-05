@@ -1,9 +1,12 @@
 /* Assemble the deployable site. Run: node tools/build-site.mjs
  *
- * There is no bundler and no transform — the app ships exactly the source
- * you can read in src/. "Build" here means copy, then verify that what came
- * out is genuinely self-contained: no bare imports, no remote resources, and
- * every module actually present.
+ * The site itself is copied, not compiled — /app/ is byte-identical to src/,
+ * so what runs at miscellany.io is the source you can read. "Build" here
+ * means copy, then verify the output is genuinely self-contained: no bare
+ * imports, no remote resources, every module present.
+ *
+ * The one thing that IS assembled is the download. See make-single.mjs for
+ * why a folder of 34 modules was the wrong artefact to hand a stranger.
  *
  * Output: dist/
  *   index.html      the front door
@@ -11,17 +14,14 @@
  *                     app/index.html    Sheet
  *                     app/deck.html     Deck
  *                     app/compose.html  both, over one document
- *   download/       one runnable source archive per tool
- *   source/         the same source as one plain-text page per tool, so it can
- *                   be read — by a person or by their own AI — without
- *                   downloading anything first
+ *   download/       one self-contained HTML file per tool — the whole app
+ *                   and its whole source, in the same file
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
-import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { makeZip } from './make-zip.mjs';
+import { makeSingleFile } from './make-single.mjs';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'src');
@@ -30,8 +30,8 @@ const VERSION = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf
 
 /* ---- the tool list ------------------------------------------------------
  *
- * One array, two consumers: the source archive built for each tool, and the
- * count on the front door. They cannot drift, because if the number in the
+ * One array, two consumers: the downloadable file built for each tool, and
+ * the count on the front door. They cannot drift, because if the number in the
  * page stops matching this list's length the build fails below. A page that
  * says "3 tools" over a list of two is the kind of thing nobody notices for
  * a month.
@@ -125,216 +125,51 @@ const FORBIDDEN = [
   [/\bimportScripts\s*\(/, 'importScripts('],
 ];
 
-function scanForReach(tool, blobs) {
+function scanForReach(tool, blobs, stage) {
   for (const [rel, buf] of blobs) {
     const text = buf.toString('utf8');
     for (const [re, label] of FORBIDDEN) {
       if (re.test(text)) {
         problems.push(
-          `${tool.title}: ${rel} contains ${label} — the front door promises there is ` +
-          `no networking or eval in this source. Remove it, or stop making the claim.`);
+          `${tool.title} (${stage}): ${rel} contains ${label} — the download promises there ` +
+          `is no networking or eval in it. Remove it, or stop making the claim.`);
       }
     }
   }
 }
 
-/* Plain ASCII on purpose. This is the file a stranger opens in whatever text
- * editor Windows hands them, and an em dash that arrives as "â€"" makes a
- * download look broken before they have run anything. */
-function readme(tool, files) {
-  return `Miscellany - ${tool.title}
-Complete source, version ${VERSION}.
-
-
-TO RUN IT
-
-  This folder needs a web server. One line, run in this folder:
-
-      python -m http.server 8000
-
-  Then open   http://localhost:8000/${tool.entry}
-
-  Double-clicking ${tool.entry} will NOT work. Browsers refuse to load
-  JavaScript modules straight off a disk, so the page comes up blank.
-  That is a browser rule about local files, not a fault in this download.
-
-
-WHAT IS IN HERE
-
-  The ${files.length} files this app runs, and nothing else. No framework, no
-  CDN, no analytics, nothing to install. Once it is running nothing is
-  fetched: unplug the network and it keeps working.
-
-  Want to check the code before you trust it? All of it, as one readable
-  page you can also hand to an AI:
-
-      https://miscellany.io/source/${tool.slug}.txt
-
-
-LICENCE
-
-  Mozilla Public License 2.0 - full text in LICENSE.txt. Yours to use,
-  change and redistribute, commercial use included.
-
-  (c) 2026 Zachary Ahmed . https://miscellany.io
-`;
-}
-
-const RULE = '='.repeat(78);
-
-/* How a file's bytes appear inside the readable page. One function, used both
- * to write it and to check it, so the check cannot drift from the writer. */
-const embed = (buf) => buf.toString('utf8').replace(/\r\n/g, '\n').replace(/\s*$/, '');
-
-/* The whole source as one plain-text page.
+/* ---- one file per tool ------------------------------------------------
  *
- * This is the artefact for the person who does not want to download a zip
- * from a stranger, and it is the one their AI can read. text/plain, so a
- * click opens it in the browser rather than saving anything. */
-function sourceText(tool, files, blobs, zipName, zipSha) {
-  const total = files.reduce((a, f) => a + blobs.get(f).length, 0);
-  const head = `${RULE}
- MISCELLANY - ${tool.title.toUpperCase()}
- The complete source code, version ${VERSION}
-${RULE}
-
-Every file this app runs - all ${files.length} of them - printed below one after
-another, in full. Nothing minified, nothing left out, nothing summarised.
-What you read here is what runs in your browser.
-
-
-WHY THIS FILE EXISTS
-
-  So you do not have to take anybody's word for it, including mine.
-
-  Give this to ChatGPT, Claude, Gemini or any other AI and ask it what the
-  code does. A fair thing to ask:
-
-      "This is the complete source code of a free ${tool.noun} app I am
-       thinking about using. Does it send my data anywhere, or do
-       anything else I should worry about?"
-
-  SAVE THIS PAGE (Ctrl+S, or Cmd+S on a Mac) AND ATTACH THE FILE. That is
-  the reliable way, and it is worth the extra ten seconds: this file is
-  long, and pasting the link instead makes the AI fetch it - which several
-  of them do only in part. A review of the first half of the code reads
-  exactly like a review of all of it. Attaching the file has no such limit.
-
-  Three things it should be able to confirm:
-
-    1. There is no networking code here at all. No fetch, no XMLHttpRequest,
-       no WebSocket, no beacon, no analytics, no telemetry. Nothing in these
-       ${String(files.length).padEnd(2)} files is capable of sending anything anywhere.
-
-    2. There is no eval() and no new Function(). Nothing here builds code out
-       of text and runs it.
-
-    3. The one dynamic import is "node:zlib", in zip.js and zipwrite.js. It is
-       a fallback for a compression feature that older browsers lack, inside a
-       branch a browser never takes. It is not a remote load.
-
-  Points 1 and 2 are not promises. The build that produced this file scans
-  these exact bytes for those patterns and refuses to publish if it finds one.
-
-
-IF YOU PASTED THE LINK ANYWAY, CHECK THIS
-
-  Ask your AI to quote the last line of the file. It should come back saying
-  END OF SOURCE, and counting ${files.length} of ${files.length} files.
-
-  If it cannot, it did not read all of this, and whatever it just told you
-  covers only the part it saw. Save this page and attach the file instead.
-
-  This is not hypothetical: fetching this exact URL was tested, and the AI
-  received roughly the first half before the page was cut off. It said so,
-  which is the point of the marker.
-
-
-THE RUNNABLE COPY
-
-  The same ${files.length} files, as a folder you can run:
-
-      https://miscellany.io/download/${zipName}
-      SHA-256  ${zipSha}
-
-
-LICENCE
-
-  Mozilla Public License 2.0 - https://mozilla.org/MPL/2.0/
-  Yours to use, change and redistribute, commercial use included.
-  (c) 2026 Zachary Ahmed . https://miscellany.io
-
-`;
-
-  const body = files.map((rel, i) => {
-    const buf = blobs.get(rel);
-    return `\n${RULE}\n FILE ${i + 1} of ${files.length}  -  ${rel}  -  ${buf.length.toLocaleString('en-US')} bytes\n${RULE}\n\n${embed(buf)}\n`;
-  }).join('');
-
-  return `${head}${body}
-${RULE}
- END OF SOURCE  -  ${files.length} of ${files.length} files, ${total.toLocaleString('en-US')} bytes.
-${RULE}
-`;
-}
-
-/* ---- the two artefacts, built from one closure ------------------------
- *
- * The page invites you to read the text and then download the zip, so the
- * two must be the same source. They are generated from a single closure in
- * a single pass, and cross-checked below, because "review this, then run
- * that" is theatre if anything can differ between them. */
+ * Not a zip of 34 modules and not a separate readable copy alongside it.
+ * Both of those made the visitor reconcile two things, and a SHA-256 is not
+ * a reconciliation anybody outside this trade can perform. One artefact:
+ * the file you read is the file that runs, because there is only one file.
+ * Double-clicking it works, which a folder of ES modules never can. */
 
 fs.mkdirSync(path.join(DIST, 'download'), { recursive: true });
-fs.mkdirSync(path.join(DIST, 'source'), { recursive: true });
-const archives = [];
+const builds = [];
 
 for (const tool of TOOLS) {
   const files = closureOf(tool.entry);
   const blobs = new Map(files.map((rel) => [rel, fs.readFileSync(path.join(SRC, rel))]));
-  scanForReach(tool, blobs);
+  scanForReach(tool, blobs, 'src');
 
-  const folder = `miscellany-${tool.slug}`;
-  const entries = files.map((rel) => ({ name: `${folder}/${rel}`, data: blobs.get(rel) }));
-  // Two root files, both with an extension. An extensionless LICENSE earns a
-  // Windows "How do you want to open this file?" dialog, which is precisely
-  // the moment a non-technical person decides this was a mistake.
-  entries.push(
-    { name: `${folder}/README.txt`, data: readme(tool, files) },
-    { name: `${folder}/LICENSE.txt`, data: fs.readFileSync(path.join(ROOT, 'LICENSE')) },
-  );
+  const { html, script } = makeSingleFile(SRC, files, tool, VERSION, problems);
+  const name = `miscellany-${tool.slug}.html`;
+  fs.writeFileSync(path.join(DIST, 'download', name), html, 'utf8');
 
-  const zipName = `miscellany-${tool.slug}-source.zip`;
-  const zipBytes = makeZip(entries);
-  fs.writeFileSync(path.join(DIST, 'download', zipName), zipBytes);
-  const zipSha = crypto.createHash('sha256').update(zipBytes).digest('hex');
+  /* The bundler emits new bytes, and those bytes are what a stranger's AI
+   * actually reviews. Scanning only the inputs would leave the shipped
+   * artefact unchecked. Scanned on the CODE, not the document: the header
+   * comment has to name fetch and eval in order to promise they are absent. */
+  scanForReach(tool, new Map([[name, Buffer.from(script, 'utf8')]]), 'bundle');
 
-  const txtName = `${tool.slug}.txt`;
-  const txtPath = path.join(DIST, 'source', txtName);
-  // utf8, NOT 'ascii'. Node's 'ascii' encoding masks the high bit, so the very
-  // first em dash in the very first file came out as a mangled space and the
-  // readable copy silently stopped being the code it claims to be. The whole
-  // feature rests on those two being the same bytes.
-  fs.writeFileSync(txtPath, sourceText(tool, files, blobs, zipName, zipSha), 'utf8');
-
-  /* Read it back off disk before checking it. Verifying the string still in
-   * memory would have passed straight through the encoding bug above — the
-   * corruption happened on the way out. */
-  const written = fs.readFileSync(txtPath, 'utf8');
-  const listed = [...written.matchAll(/^ FILE \d+ of \d+ {2}- {2}(\S+) {2}- /gm)].map((m) => m[1]);
-  for (const rel of listed) {
-    if (!files.includes(rel)) problems.push(`${tool.title}: ${txtName} lists ${rel}, which is not in the zip`);
-  }
+  // every source file has to have made it in, or "this is the whole program"
+  // is false in the one direction nobody would notice
   for (const rel of files) {
-    if (!listed.includes(rel)) { problems.push(`${tool.title}: ${rel} is in the zip but not in ${txtName}`); continue; }
-    if (!written.includes(embed(blobs.get(rel)))) {
-      problems.push(`${tool.title}: ${rel} in ${txtName} is not byte-identical to the copy in the zip`);
-    }
+    if (!html.includes(rel)) problems.push(`${tool.title}: ${rel} is in the closure but not named in ${name}`);
   }
-  if (!written.trimEnd().endsWith(RULE)) problems.push(`${txtName}: missing the END OF SOURCE marker readers are told to look for`);
-
-  archives.push({ ...tool, zipName, txtName, files: files.length,
-                  bytes: zipBytes.length, txtBytes: written.length, sha: zipSha });
+  builds.push({ ...tool, name, files: files.length, bytes: Buffer.byteLength(html, 'utf8') });
 }
 
 /* ---- enforce the promise, rather than merely keeping it ----------------
@@ -378,16 +213,27 @@ fs.writeFileSync(path.join(DIST, '_headers'),
   Permissions-Policy: geolocation=(), camera=(), microphone=(), interest-cohort=()
   Cross-Origin-Opener-Policy: same-origin
 
-/download/*
-  Content-Type: application/zip
-  Content-Disposition: attachment
-
-# Rendered in the browser, deliberately: the whole point of this copy is that
-# you can read it — or hand the URL to an AI — without downloading anything.
-/source/*
-  Content-Type: text/plain; charset=utf-8
-  Content-Disposition: inline
-`);
+# NOT text/html, deliberately — this is the load-bearing line.
+#
+# Cloudflare rewrites HTML at the edge, and it was doing it here: every
+# download left the edge with a <script src="static.cloudflareinsights.com">
+# spliced in, 851 bytes we did not write. On this site that beacon is refused
+# by our own CSP. In a file sitting in somebody's Downloads folder there is no
+# CSP, and it phoned home the moment they opened it — inside the very artefact
+# the front door calls "the complete source, with no networking code in it".
+#
+# The dashboard toggle that stops it is not reachable from here, and a setting
+# somebody can flip back is not a guarantee anyway. An edge HTML rewriter does
+# not touch a response that is not HTML, so this one does not get the chance.
+# The file is still HTML on disk and still opens with a double-click.
+# Both paths, and that is not belt-and-braces. Pages 308-redirects a .html
+# request to the extensionless form, so a rule written only against the .html
+# lands on the REDIRECT and the file itself is served with whatever the edge
+# felt like — which is how the beacon got in the first time.
+${TOOLS.map((t) => [`/download/miscellany-${t.slug}.html`, `/download/miscellany-${t.slug}`].map((p) => `${p}
+  Content-Type: application/octet-stream
+  Content-Disposition: attachment; filename="miscellany-${t.slug}.html"
+`).join('')).join('')}`);
 
 /* ---- verify the output is self-contained ---- */
 
@@ -440,11 +286,8 @@ if (!tally) {
   problems.push(`index.html: tally says ${tally[1]}, the tool list has ${TOOLS.length}`);
 }
 for (const t of TOOLS) {
-  if (!home.includes(`miscellany-${t.slug}-source.zip`)) {
-    problems.push(`index.html: no download link for ${t.title}'s source archive`);
-  }
-  if (!home.includes(`./source/${t.slug}.txt`)) {
-    problems.push(`index.html: no link to ${t.title}'s readable source — the "check it yourself" offer is unbacked`);
+  if (!home.includes(`./download/miscellany-${t.slug}.html`)) {
+    problems.push(`index.html: no download link for ${t.title}`);
   }
 }
 for (const m of home.matchAll(/href="\.\/([^"]+)"/g)) {
@@ -457,9 +300,8 @@ const bytes = files.reduce((a, f) => a + fs.statSync(f).size, 0);
 console.log('');
 console.log(`  dist/         ${files.length} files, ${(bytes / 1024).toFixed(0)} KB`);
 console.log(`  entry points  /index.html · /app/index.html · /app/deck.html · /app/compose.html`);
-for (const a of archives) {
-  console.log(`  ${a.title.padEnd(6)}        /download/${a.zipName}  —  ${a.files} files, ${(a.bytes / 1024).toFixed(0)} KB`);
-  console.log(`  ${''.padEnd(6)}        /source/${a.txtName}  —  readable, ${(a.txtBytes / 1024).toFixed(0)} KB`);
+for (const b of builds) {
+  console.log(`  download      /download/${b.name}  —  ${b.files} source files in 1, ${(b.bytes / 1024).toFixed(0)} KB`);
 }
 console.log('');
 if (problems.length) {
@@ -468,7 +310,6 @@ if (problems.length) {
   process.exit(1);
 }
 console.log(`  self-contained: no bare imports, no remote resources, every module present`);
-console.log(`  front door:     ${TOOLS.length} tools listed, ${TOOLS.length} counted, ${archives.length} archives linked`);
-console.log(`  source:         no fetch / XHR / WebSocket / beacon / eval / new Function in any shipped file`);
-console.log(`  readable == runnable: every file in each .txt is in its .zip, and back`);
+console.log(`  front door:     ${TOOLS.length} tools listed, ${TOOLS.length} counted, ${builds.length} downloads linked`);
+console.log(`  downloads:      every import resolves, no cycles, no fetch/XHR/WebSocket/beacon/eval/Function — checked on the bundle, not just its inputs`);
 console.log('');

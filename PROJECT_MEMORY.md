@@ -991,3 +991,89 @@ Two consequences, both shipped:
   moment later showed the new one. The deploy was fine; the instrument was early.
   Re-shoot before believing a stale-looking screenshot. → [[reference-cloudflare-stale-assets]]
 - Zip pixel-signatures unchanged after slimming: Sheet `#40964088`, Deck `#d528b170`.
+
+
+## Round 4 — 2026-08-04 — one file, and the edge was tampering with it
+
+Zach, on the round-3 download: *"the download file still has so many files and
+folders. are they really all necessary? can they be collapsed into eachother if
+so? Also, how does a potential user know that what they are downloading is the
+same as what the .txt is advertising? Do you understand the problem i am trying to
+solve? Lastly, why create a new content section with all this verbage."*
+
+He was right on all three, and the middle one reframes the feature. **Two artefacts
+(a .txt to review, a .zip to run) makes the user reconcile them, and a SHA-256 is
+not a reconciliation a non-technical person can perform.** The answer is not a
+better hash. It is one file.
+
+### `/download/miscellany-<tool>.html` — the whole app AND its whole source
+
+34 files → 1 (Sheet, 353 KB); 22 → 1 (Deck, 194 KB). `tools/make-single.mjs`.
+The .zip and the .txt are both gone, and so is `make-zip.mjs`.
+
+- **Double-click runs it.** No server. An inline `<script>` has nothing to fetch,
+  which is what ES modules over `file://` could never do — the entire reason
+  round 3 needed a README teaching `python -m http.server`.
+- **The same file is the source.** Readable, unminified, one module after another.
+  Nothing to compare against anything: what you review is what runs.
+- **No eval, no Function(), no blob loader.** A self-assembling file would look
+  like obfuscation to the reviewing AI it exists to satisfy. The only edit from
+  the repo is `import` → a local reference and `export` dropped from its
+  declaration; the header comment says exactly that.
+- **Each module keeps its own scope** — mandatory, not tidy: 11 top-level names
+  collide across the 30 modules (`parse`, `MIME`, `SIG_LOC`, `textOf`, `C`, …).
+  0 circular imports, so a topological order exists.
+
+Page: the three-paragraph block is deleted. Each tool is now `[Open] [Download
+source] (?)`, the `?` a `<details>` — 61 words, zero script, which the CSP
+requires anyway.
+
+### ⚠️⚠️ CLOUDFLARE WAS INJECTING A BEACON INTO THE DOWNLOADED FILE
+
+The end-to-end test — click, save, open off the disk — caught this and nothing
+else could have:
+
+```
+identical to the build: False        (+851 bytes)
+network requests made: ['file:///C:/cdn-cgi/rum?']
+```
+
+The edge spliced `<script src="static.cloudflareinsights.com/beacon.min.js">`
+into the download. **On the site that beacon is refused by our CSP. In a file in
+somebody's Downloads folder there is no CSP** — so the artefact the front door
+calls "the complete source, with no networking code in it" phoned home on open.
+The claim would have been false in the one copy that matters.
+
+**Fix, and it is structural rather than a setting:** an edge HTML rewriter does
+not touch a response that is not HTML. `/download/*` now serves
+`application/octet-stream`. Still HTML on disk, still double-clicks.
+(The RUM dashboard toggle is still unreachable — `/rum/site_info` →
+`Unable to authenticate request` on this token, unchanged since 08.02.)
+
+**The rule had to be written for BOTH paths.** Pages 308-redirects `.html` to the
+extensionless form, so a rule against `/download/x.html` alone lands on the
+*redirect* and the file itself is served however the edge likes — which is how
+the beacon got in on the first attempt at the fix. → [[reference-cloudflare-stale-assets]]
+
+Two injections total, both CSP-blocked on the site: the analytics beacon **and**
+a challenge-platform inline script (`__CF$cv$params`).
+
+### Guards, all proven by making them fire
+
+- every imported name must be exported by its target module — caught a regex bug:
+  `[\s\S]*?` is non-greedy but still crosses newlines, so on `sheet.js` one match
+  swallowed an export list *and* the re-export on the next line. `[^}]*` instead.
+- **`shell.js` does `await import('./functions.js')` — a fetch.** In one file there
+  is nothing to fetch; the command palette's "Function list" would have thrown for
+  every user. Rewritten to `M["core/functions.js"]`, and driven through the real
+  palette in the test (Ctrl+K → "function list" → alert: *76 functions*).
+- forbidden-primitive scan runs on the **generated bundle**, not just its inputs —
+  and on the CODE, since the header comment must name `fetch` and `eval` to
+  promise they are absent.
+- `localStorage` on `file://` verified separately from the pixel test **because the
+  pixel test is blind to it**: dead storage → `shell.load()` false → the first-run
+  document → the exact bytes a fresh served context also draws. Identical
+  signatures on a half-broken app. Write, reload, confirm.
+
+Pixel signatures from `file://` match the served app exactly: Sheet `#40964088`,
+Deck `#d528b170`. `npm test` green.
