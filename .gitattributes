@@ -1,0 +1,13 @@
+# LF everywhere, enforced at checkout. This is not cosmetic: the per-tool
+# Content-Security-Policy pins the SHA-256 of each tool file's inline script,
+# computed over the exact bytes in site/tool/. A Windows clone with
+# core.autocrlf=true would materialise those files with CRLF, silently
+# changing the hash the build computes away from the bytes already deployed —
+# and the build's CRLF guard would (rightly) refuse to build at all.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
+*.xlsx binary
+*.zip binary
+*.woff2 binary
