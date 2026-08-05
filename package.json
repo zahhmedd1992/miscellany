@@ -5,7 +5,7 @@
   "license": "MPL-2.0",
   "type": "module",
   "scripts": {
-    "test": "node test/core.test.mjs && node test/numfmt.test.mjs && node test/docfile.test.mjs && node test/layout.test.mjs && node test/clipboard.test.mjs && node test/stylewrite.test.mjs && node test/structural.test.mjs && node test/corpus.read.test.mjs && node test/corpus.roundtrip.test.mjs",
+    "test": "node test/core.test.mjs && node test/numfmt.test.mjs && node test/docfile.test.mjs && node test/layout.test.mjs && node test/clipboard.test.mjs && node test/stylewrite.test.mjs && node test/structural.test.mjs && node test/corpus.read.test.mjs && node test/corpus.roundtrip.test.mjs && node test/pdf.read.test.mjs",
     "test:fast": "node test/core.test.mjs && node test/numfmt.test.mjs && node test/layout.test.mjs && node test/clipboard.test.mjs && node test/stylewrite.test.mjs && node test/structural.test.mjs",
     "corpus": "python corpus/build_corpus.py",
     "licences": "node tools/check-licences.mjs",

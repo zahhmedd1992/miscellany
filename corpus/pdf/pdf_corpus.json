@@ -1,0 +1,466 @@
+{
+ "frb-beigebook.pdf": {
+  "acroForm": false,
+  "bytes": 1036883,
+  "classicXref": false,
+  "encrypted": false,
+  "firstPageSizes": [
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ]
+  ],
+  "linearized": true,
+  "objStm": true,
+  "pages": 54,
+  "sha256": "9c60425a073b1a9acaffcb1a6db2716982a13dd328eab0c172d16cba3d25d44b",
+  "startxrefCount": 2,
+  "url": "https://www.federalreserve.gov/monetarypolicy/files/BeigeBook_20250115.pdf",
+  "version": "1.7",
+  "xrefStream": true
+ },
+ "frb-mpr-2025.pdf": {
+  "acroForm": true,
+  "bytes": 2226758,
+  "classicXref": false,
+  "encrypted": false,
+  "firstPageSizes": [
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ]
+  ],
+  "linearized": true,
+  "objStm": true,
+  "pages": 81,
+  "sha256": "6f8538cb4ce2902ac35cc9ec8311feda6c5c94953b76db50de94192741bb07f4",
+  "startxrefCount": 2,
+  "url": "https://www.federalreserve.gov/monetarypolicy/files/20250620_mprfullreport.pdf",
+  "version": "1.7",
+  "xrefStream": true
+ },
+ "govinfo-bill-enr.pdf": {
+  "acroForm": true,
+  "bytes": 2416174,
+  "classicXref": true,
+  "encrypted": false,
+  "firstPageSizes": [
+   [
+    720.0,
+    1080.0
+   ],
+   [
+    720.0,
+    1080.0
+   ],
+   [
+    720.0,
+    1080.0
+   ]
+  ],
+  "linearized": false,
+  "objStm": false,
+  "pages": 1039,
+  "sha256": "60477c5964b398ec6b5569e245848650124682f75349d363eb96ff2fda8aa728",
+  "startxrefCount": 1,
+  "url": "https://www.govinfo.gov/content/pkg/BILLS-117hr3684enr/pdf/BILLS-117hr3684enr.pdf",
+  "version": "1.5",
+  "xrefStream": false
+ },
+ "govinfo-fr-daily.pdf": {
+  "acroForm": true,
+  "bytes": 13257131,
+  "classicXref": true,
+  "encrypted": false,
+  "firstPageSizes": [
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ]
+  ],
+  "linearized": false,
+  "objStm": false,
+  "pages": 229,
+  "sha256": "46b38e22fc0d71abc52428178620548fe7152e3ac1d099864a12965e7f39401b",
+  "startxrefCount": 2,
+  "url": "https://www.govinfo.gov/content/pkg/FR-2024-01-02/pdf/FR-2024-01-02.pdf",
+  "version": "1.7",
+  "xrefStream": false
+ },
+ "govinfo-plaw.pdf": {
+  "acroForm": true,
+  "bytes": 2690984,
+  "classicXref": true,
+  "encrypted": false,
+  "firstPageSizes": [
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ]
+  ],
+  "linearized": false,
+  "objStm": false,
+  "pages": 1039,
+  "sha256": "9f5806990c5b1a7561132fb159782891ecfb1b64bfd130b07701de7efe2aa853",
+  "startxrefCount": 2,
+  "url": "https://www.govinfo.gov/content/pkg/PLAW-117publ58/pdf/PLAW-117publ58.pdf",
+  "version": "1.4",
+  "xrefStream": false
+ },
+ "irs-f1040.pdf": {
+  "acroForm": true,
+  "bytes": 220237,
+  "classicXref": false,
+  "encrypted": false,
+  "firstPageSizes": [
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ]
+  ],
+  "linearized": true,
+  "objStm": true,
+  "pages": 2,
+  "sha256": "3d31c226df0d189ced80e039d01cf0f8820c1019681a0f0ca6264de277b7e982",
+  "startxrefCount": 3,
+  "url": "https://www.irs.gov/pub/irs-pdf/f1040.pdf",
+  "version": "1.7",
+  "xrefStream": true
+ },
+ "irs-fw4.pdf": {
+  "acroForm": true,
+  "bytes": 208845,
+  "classicXref": false,
+  "encrypted": false,
+  "firstPageSizes": [
+   [
+    611.98,
+    791.97
+   ],
+   [
+    611.98,
+    791.97
+   ],
+   [
+    611.98,
+    791.97
+   ]
+  ],
+  "linearized": true,
+  "objStm": true,
+  "pages": 5,
+  "sha256": "92444d8856ce55d9e25dca8b6d1420634fc68b11e1ab1f760916ea29ddd312b2",
+  "startxrefCount": 3,
+  "url": "https://www.irs.gov/pub/irs-pdf/fw4.pdf",
+  "version": "1.7",
+  "xrefStream": true
+ },
+ "irs-fw9.pdf": {
+  "acroForm": true,
+  "bytes": 140815,
+  "classicXref": false,
+  "encrypted": false,
+  "firstPageSizes": [
+   [
+    611.98,
+    791.97
+   ],
+   [
+    611.98,
+    791.97
+   ],
+   [
+    611.98,
+    791.97
+   ]
+  ],
+  "linearized": true,
+  "objStm": true,
+  "pages": 6,
+  "sha256": "2d420cbb4123dcf1fb82595b2359cfbb5d81f00b9df9d359fcc7af361d093f53",
+  "startxrefCount": 3,
+  "url": "https://www.irs.gov/pub/irs-pdf/fw9.pdf",
+  "version": "1.7",
+  "xrefStream": true
+ },
+ "irs-i1040gi.pdf": {
+  "acroForm": false,
+  "bytes": 4434643,
+  "classicXref": false,
+  "encrypted": false,
+  "firstPageSizes": [
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ]
+  ],
+  "linearized": true,
+  "objStm": true,
+  "pages": 126,
+  "sha256": "482e9c487c608f1bbeaceef35bc3c0933e8b35443cfff447e4279d590468364a",
+  "startxrefCount": 2,
+  "url": "https://www.irs.gov/pub/irs-pdf/i1040gi.pdf",
+  "version": "1.7",
+  "xrefStream": true
+ },
+ "irs-p15.pdf": {
+  "acroForm": false,
+  "bytes": 1713916,
+  "classicXref": false,
+  "encrypted": false,
+  "firstPageSizes": [
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ]
+  ],
+  "linearized": true,
+  "objStm": true,
+  "pages": 59,
+  "sha256": "b46c3622439d8521e3a0faca4cd5b5ece3451b526f65f06a5e38d5c9f804c88b",
+  "startxrefCount": 2,
+  "url": "https://www.irs.gov/pub/irs-pdf/p15.pdf",
+  "version": "1.7",
+  "xrefStream": true
+ },
+ "irs-prior-f1040-1996.pdf": {
+  "acroForm": false,
+  "bytes": 50279,
+  "classicXref": true,
+  "encrypted": false,
+  "firstPageSizes": [
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ]
+  ],
+  "linearized": true,
+  "objStm": false,
+  "pages": 2,
+  "sha256": "ef10cc684fb26bc01cb95d228357b375770d7baed58b2c311738ddd49dda1c35",
+  "startxrefCount": 2,
+  "url": "https://www.irs.gov/pub/irs-prior/f1040--1996.pdf",
+  "version": "1.3",
+  "xrefStream": false
+ },
+ "irs-prior-f1040-2001.pdf": {
+  "acroForm": true,
+  "bytes": 168768,
+  "classicXref": true,
+  "encrypted": false,
+  "firstPageSizes": [
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ]
+  ],
+  "linearized": false,
+  "objStm": false,
+  "pages": 2,
+  "sha256": "994d33abb28e7962d2f47ae551e7f4b497f6ec96b5b614d1d048ff641bb972c6",
+  "startxrefCount": 1,
+  "url": "https://www.irs.gov/pub/irs-prior/f1040--2001.pdf",
+  "version": "1.3",
+  "xrefStream": false
+ },
+ "irs-prior-p17-1999.pdf": {
+  "acroForm": false,
+  "bytes": 1717364,
+  "classicXref": true,
+  "encrypted": false,
+  "firstPageSizes": [
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ]
+  ],
+  "linearized": true,
+  "objStm": false,
+  "pages": 275,
+  "sha256": "97c3c88b3c4ac364af3cc444b25edb2e85b9f80a9832899c46dd35fa34ffc85c",
+  "startxrefCount": 2,
+  "url": "https://www.irs.gov/pub/irs-prior/p17--1999.pdf",
+  "version": "1.2",
+  "xrefStream": false
+ },
+ "nist-fips180-4.pdf": {
+  "acroForm": false,
+  "bytes": 833315,
+  "classicXref": true,
+  "encrypted": false,
+  "firstPageSizes": [
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ]
+  ],
+  "linearized": false,
+  "objStm": true,
+  "pages": 36,
+  "sha256": "0455b406d89648d20cbde375561e19c245b9815e894164c2670772e3d54deb82",
+  "startxrefCount": 4,
+  "url": "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf",
+  "version": "1.5",
+  "xrefStream": true
+ },
+ "nist-sp800-63b.pdf": {
+  "acroForm": false,
+  "bytes": 1480377,
+  "classicXref": false,
+  "encrypted": false,
+  "firstPageSizes": [
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ]
+  ],
+  "linearized": true,
+  "objStm": true,
+  "pages": 80,
+  "sha256": "ccfce7510a1267933f912d023306c6e7d485f21be63d271108b61aad6139127e",
+  "startxrefCount": 3,
+  "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-63b.pdf",
+  "version": "1.6",
+  "xrefStream": true
+ },
+ "state-visa-bulletin.pdf": {
+  "acroForm": false,
+  "bytes": 264624,
+  "classicXref": true,
+  "encrypted": false,
+  "firstPageSizes": [
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ]
+  ],
+  "linearized": true,
+  "objStm": true,
+  "pages": 8,
+  "sha256": "139caa5e885e742b1524b36fb8a331e3b9888cbb2014bf944561ddf65ae6cc94",
+  "startxrefCount": 2,
+  "url": "https://travel.state.gov/content/dam/visas/Bulletins/visabulletin_July2025.pdf",
+  "version": "1.7",
+  "xrefStream": true
+ },
+ "treasury-mts.pdf": {
+  "acroForm": true,
+  "bytes": 3503068,
+  "classicXref": false,
+  "encrypted": false,
+  "firstPageSizes": [
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ],
+   [
+    612.0,
+    792.0
+   ]
+  ],
+  "linearized": false,
+  "objStm": true,
+  "pages": 40,
+  "sha256": "ccc4a50e85b1a2ac70939db0e87c0fc73ffbe753664db803e70882573da68d68",
+  "startxrefCount": 4,
+  "url": "https://fiscaldata.treasury.gov/static-data/published-reports/mts/MonthlyTreasuryStatement_202506.pdf",
+  "version": "1.7",
+  "xrefStream": true
+ }
+}
