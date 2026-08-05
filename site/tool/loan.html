@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<!-- This policy is enforced by your browser, even when this file is opened
+     from your own disk: no connections, no remote scripts, nothing loaded
+     from anywhere. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Loan — Miscellany</title>
+<meta name="description" content="An amortization schedule that gets the conventions right: 30/360, Actual/360, Actual/365, exact cents, extra-payment scenarios. Built by a banker; runs entirely on your machine." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%239A3B1B'/%3E%3Ctext x='8' y='12' text-anchor='middle' font-family='Georgia,serif' font-size='11' font-weight='bold' fill='%23FBF8F2'%3EM%3C/text%3E%3C/svg%3E" />
+<style>
+:root{
+  --paper:#FBF8F2; --paper-2:#F5F0E6; --card:#FFFDF8;
+  --ink:#211C16; --ink-2:#4A4338; --muted:#6C6356;
+  --line:#E7DFD0; --line-2:#DAD0BC;
+  --accent:#9A3B1B; --accent-2:#7E2F14; --accent-tint:#F3E7DF;
+  --green:#2F5D3A; --bad:#8C2B2B;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono","Segoe UI Mono",Menlo,Consolas,monospace;
+  --measure:52rem;
+  --gutter:clamp(1.15rem,5vw,2.5rem);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--sans);font-size:17px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--measure);margin:0 auto;padding:0 var(--gutter)}
+a{color:var(--accent-2);text-underline-offset:2px}
+
+header{
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,#FFFDF8,var(--paper));
+  padding:clamp(1.6rem,4.5vw,2.4rem) 0 clamp(1.4rem,3.5vw,2rem);
+}
+.brand{font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 .9rem}
+.brand a{color:inherit;text-decoration:none}
+.brand a:hover{color:var(--accent-2)}
+h1{font-weight:700;font-size:clamp(1.7rem,5vw,2.4rem);line-height:1.08;letter-spacing:-.03em;margin:0 0 .45rem}
+.dek{margin:0;color:var(--ink-2);font-size:.98rem;max-width:42rem}
+
+main{padding:clamp(1.8rem,4.5vw,2.6rem) 0 1rem}
+
+fieldset{
+  border:1px solid var(--line);border-radius:6px;background:var(--card);
+  padding:1rem 1.1rem 1.15rem;margin:0 0 1.1rem;
+}
+legend{font-size:.8rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:0 .4rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(12rem,1fr));gap:.75rem .9rem}
+.field{display:flex;flex-direction:column;gap:.2rem}
+.field span{font-size:.82rem;font-weight:600;color:var(--ink-2)}
+.field input,.field select{
+  font:inherit;font-size:.95rem;padding:.45rem .55rem;border:1px solid var(--line-2);
+  border-radius:4px;background:#fff;color:var(--ink);width:100%;font-family:var(--mono);
+}
+.field select{font-family:var(--sans)}
+.hint{font-size:.83rem;color:var(--muted);margin:.55rem 0 0}
+.hint.warn{color:var(--bad)}
+
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));gap:.8rem;margin:0 0 1.2rem}
+.tile{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:4px;padding:.7rem .9rem}
+.tile b{display:block;font-size:1.25rem;letter-spacing:-.02em;line-height:1.2;font-variant-numeric:tabular-nums}
+.tile span{font-size:.78rem;color:var(--muted)}
+.tile.save{border-left-color:var(--green)}
+.tile.save b{color:var(--green)}
+
+.chartbox{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:.9rem 1rem .4rem;margin:0 0 1.2rem}
+.chartbox svg{width:100%;height:auto;display:block}
+.legend{font-size:.78rem;color:var(--muted);margin:.3rem 0 .4rem;display:flex;gap:1.2rem}
+.legend i{display:inline-block;width:.75rem;height:.16rem;vertical-align:middle;margin-right:.35rem}
+
+.bar{display:flex;flex-wrap:wrap;gap:.7rem;align-items:center;margin:0 0 .7rem}
+.bar .spacer{flex:1}
+.btn{
+  display:inline-block;background:var(--accent);color:#fff;text-decoration:none;
+  padding:.5rem 1.05rem;border-radius:4px;font-weight:600;font-size:.92rem;
+  border:1px solid var(--accent);font-family:var(--sans);cursor:pointer;
+}
+.btn:hover{background:var(--accent-2);border-color:var(--accent-2)}
+.btn.ghost{background:none;color:var(--accent-2)}
+.btn.ghost:hover{background:var(--accent-tint)}
+.btn:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:.83rem;font-variant-numeric:tabular-nums}
+th,td{padding:.32rem .6rem;text-align:right;border-bottom:1px solid var(--paper-2);white-space:nowrap}
+th{background:var(--paper-2);color:var(--ink-2);font-size:.72rem;letter-spacing:.05em;text-transform:uppercase}
+td:first-child,th:first-child{text-align:left}
+tr.year td{background:var(--accent-tint);font-weight:650;border-top:1px solid var(--line-2)}
+tr:last-child td{border-bottom:none}
+
+.trust{margin:1.9rem 0 0;border-top:1px solid var(--line);padding-top:1.3rem}
+.trust summary{cursor:pointer;font-weight:650;font-size:.95rem;color:var(--ink-2)}
+.trust p{font-size:.88rem;color:var(--ink-2);margin:.7rem 0 0;max-width:44rem}
+footer{margin-top:2.6rem;padding:1.6rem 0 2.6rem;background:var(--paper-2);border-top:1px solid var(--line-2);font-size:.85rem;color:var(--muted)}
+footer p{margin:0 0 .4rem}
+footer a{color:var(--accent-2)}
+
+@media print{
+  header,fieldset,.bar,.trust,footer,.chartbox{display:none}
+  body{background:#fff;font-size:12px}
+  .tiles{grid-template-columns:repeat(4,1fr)}
+  .tablebox{overflow:visible;border:none}
+  main{padding:0}
+  @page{margin:1.6cm}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <p class="brand"><a href="https://miscellany.io/">Miscellany</a></p>
+    <h1>Loan</h1>
+    <p class="dek">An amortization schedule that takes the conventions seriously: 30/360, Actual/360 and Actual/365 day counts, exact cents at every row, and what an extra payment really saves. The free calculators on ad-supported sites round where it suits them; this one shows its arithmetic and runs entirely on your machine.</p>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <fieldset>
+      <legend>The loan</legend>
+      <div class="grid">
+        <label class="field"><span>Amount ($)</span><input id="amount" inputmode="decimal" value="200,000" /></label>
+        <label class="field"><span>Annual rate (%)</span><input id="rate" inputmode="decimal" value="6.000" /></label>
+        <label class="field"><span>Term (years)</span><input id="years" inputmode="numeric" value="30" /></label>
+        <label class="field"><span>First payment</span><input id="start" type="date" /></label>
+        <label class="field"><span>Day count</span>
+          <select id="basis">
+            <option value="30/360">30/360 — most mortgages &amp; consumer loans</option>
+            <option value="A/360">Actual/360 — most commercial loans</option>
+            <option value="A/365">Actual/365 — some banks &amp; markets</option>
+          </select>
+        </label>
+      </div>
+      <p class="hint" id="basis-hint"></p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Extra payments (optional)</legend>
+      <div class="grid">
+        <label class="field"><span>Extra every month ($)</span><input id="extra" inputmode="decimal" value="0" /></label>
+        <label class="field"><span>One-time amount ($)</span><input id="lump" inputmode="decimal" value="0" /></label>
+        <label class="field"><span>&hellip;with payment #</span><input id="lumpat" inputmode="numeric" value="12" /></label>
+      </div>
+    </fieldset>
+
+    <div class="tiles" id="tiles"></div>
+
+    <div class="chartbox" id="chartbox">
+      <div class="legend">
+        <span><i style="background:#9A3B1B"></i>Balance</span>
+        <span><i style="background:#2F5D3A"></i>Cumulative interest</span>
+      </div>
+      <div id="chart"></div>
+    </div>
+
+    <div class="bar">
+      <span class="hint" id="rowline"></span>
+      <span class="spacer"></span>
+      <button class="btn ghost" id="print" type="button">Print schedule</button>
+    </div>
+
+    <div class="tablebox">
+      <table id="sched" aria-label="Amortization schedule">
+        <thead><tr><th>Date</th><th>#</th><th>Payment</th><th>Interest</th><th>Principal</th><th>Extra</th><th>Balance</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <details class="trust">
+      <summary>The arithmetic, stated plainly</summary>
+      <p><strong>Every figure is computed in whole cents.</strong> Each period&rsquo;s interest is the balance times the period rate, rounded half-up to the cent, exactly once. The payment comes from the standard annuity formula, rounded to the cent; the final payment simply pays whatever is left, so the schedule sums exactly &mdash; principal portions add up to the loan to the penny, every row.</p>
+      <p><strong>Day counts matter and are named.</strong> Under <em>30/360</em> every month is a twelfth of a year (the U.S. convention, with the standard end-of-month adjustments). Under <em>Actual/360</em> &mdash; how most commercial loans accrue &mdash; interest is charged on the real days elapsed over a 360-day year, which quietly raises the effective rate; the payment stays the annuity amount, so the split shifts and the last payment differs. <em>Actual/365</em> counts real days over 365.</p>
+      <p><strong>A zero rate does not divide by zero.</strong> At 0% the payment is the loan over the term, to the cent &mdash; a case a surprising number of calculators get wrong.</p>
+      <p><strong>Extra money goes to principal.</strong> The monthly extra and the one-time amount reduce the balance the moment they are paid, and the savings tile is the difference between this schedule and the no-extra schedule, computed, not estimated.</p>
+      <p><strong>It runs entirely on your machine</strong> &mdash; the policy at the top of this file makes the browser refuse every network connection, and nothing you type is stored anywhere. You are reading the whole program: this one file is the tool and its own source.</p>
+    </details>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><strong>Miscellany</strong> &mdash; free, modular, and yours. <a href="https://miscellany.io/">All tools</a></p>
+    <p><a href="https://github.com/zahhmedd1992/miscellany">GitHub</a> &middot; <a href="https://mozilla.org/MPL/2.0/">MPL-2.0</a></p>
+  </div>
+</footer>
+
+<script>
+/* Loan — a Miscellany tool.                  https://miscellany.io
+ *
+ * This file is the complete program and its own source. It makes no network
+ * connections of any kind — enforced by the Content-Security-Policy above —
+ * and stores nothing.
+ *
+ * Licence: MPL-2.0 (https://mozilla.org/MPL/2.0/), part of
+ * https://github.com/zahhmedd1992/miscellany
+ *
+ * ARITHMETIC CONTRACT (the part that makes this worth trusting):
+ *   - money is integer CENTS throughout; display is formatting only
+ *   - period interest = round-half-up(balance x period-rate) in cents, once
+ *   - 30/360: period rate = annual/12. Actual/360 and Actual/365: interest
+ *     = balance x annual x actualDays/360 (or /365), actual days measured
+ *     between successive payment dates with end-of-month clamping
+ *   - payment = annuity formula at annual/12, rounded to the nearest cent;
+ *     at 0% the payment is principal/n; the FINAL payment pays the exact
+ *     remainder, so sum(principal) === the loan, to the penny
+ *   - extra amounts apply to principal in the period they are paid
+ */
+'use strict';
+
+/* ---- dates (UTC arithmetic, no DST surprises) --------------------------- */
+
+function addMonths(y, m, d, anchorDay, count) {
+  let mm = m + count;
+  let yy = y + Math.floor((mm - 1) / 12);
+  mm = ((mm - 1) % 12 + 12) % 12 + 1;
+  const dim = new Date(Date.UTC(yy, mm, 0)).getUTCDate();
+  return [yy, mm, Math.min(anchorDay, dim)];
+}
+const daysBetween = (a, b) =>
+  Math.round((Date.UTC(b[0], b[1] - 1, b[2]) - Date.UTC(a[0], a[1] - 1, a[2])) / 86400000);
+
+/** 30/360 US: both 31sts become 30ths (d2 only if d1 already >= 30). */
+function days30360(a, b) {
+  let [y1, m1, d1] = a, [y2, m2, d2] = b;
+  if (d1 === 31) d1 = 30;
+  if (d2 === 31 && d1 >= 30) d2 = 30;
+  return (y2 - y1) * 360 + (m2 - m1) * 30 + (d2 - d1);
+}
+
+/* ---- the schedule ------------------------------------------------------- */
+
+function paymentCents(principalCents, annualPct, n) {
+  if (annualPct === 0) return Math.round(principalCents / n);
+  const r = annualPct / 100 / 12;
+  return Math.round(principalCents * r / (1 - Math.pow(1 + r, -n)));
+}
+
+/**
+ * @param {object} o {amountCents, annualPct, months, basis, start:[y,m,d],
+ *                    extraCents, lumpCents, lumpAt}
+ * @returns {rows, payCents, totalInterest, totalPaid, payoff:[y,m,d]}
+ */
+function schedule(o) {
+  const pay = paymentCents(o.amountCents, o.annualPct, o.months);
+  const rows = [];
+  let bal = o.amountCents;
+  let prev = null;                    // accrual start: one period before first payment
+  const anchor = o.start[2];
+  {
+    const [py, pm, pd] = addMonths(o.start[0], o.start[1], o.start[2], anchor, -1);
+    prev = [py, pm, pd];
+  }
+  let totalInterest = 0, totalPaid = 0;
+  for (let k = 1; k <= o.months && bal > 0; k++) {
+    const date = addMonths(o.start[0], o.start[1], o.start[2], anchor, k - 1);
+    let interest;
+    if (o.basis === '30/360') {
+      interest = Math.round(bal * o.annualPct / 1200);
+    } else {
+      const days = daysBetween(prev, date);
+      interest = Math.round(bal * o.annualPct / 100 * days / (o.basis === 'A/360' ? 360 : 365));
+    }
+    let extra = (o.extraCents || 0) + (k === o.lumpAt ? (o.lumpCents || 0) : 0);
+    let payment = pay;
+    let principal = payment - interest;
+    if (principal < 0) { principal = 0; payment = interest; } // negative-amortization guard
+
+    /* Exactly one of four endings, in words:
+       the regular payment alone clears the balance; the extra clears it;
+       the term is up so the final payment absorbs the rounding residue;
+       or this is an ordinary middle payment. */
+    if (bal <= principal) {
+      principal = bal; extra = 0; payment = interest + principal;
+    } else if (bal <= principal + extra) {
+      extra = bal - principal;
+    } else if (k === o.months) {
+      extra = Math.min(extra, Math.max(0, bal - principal));
+      principal = bal - extra; payment = interest + principal;
+    }
+
+    bal -= principal + extra;
+    totalInterest += interest;
+    totalPaid += payment + extra;
+    rows.push({ k, date, payment, interest, principal, extra, bal });
+    prev = date;
+  }
+  return { rows, payCents: pay, totalInterest, totalPaid, payoff: rows.length ? rows[rows.length - 1].date : o.start };
+}
+
+/* ---- page wiring --------------------------------------------------------- */
+
+const $ = (id) => document.getElementById(id);
+const fmtUsd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+const usd = (c) => fmtUsd.format(c / 100);
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const fmtDate = ([y, m, d]) => `${MONTHS[m - 1]} ${d}, ${y}`;
+
+function parseMoney(s) {
+  const v = parseFloat(String(s).replace(/[,$\s]/g, ''));
+  return Number.isFinite(v) && v >= 0 ? Math.round(v * 100) : null;
+}
+
+const BASIS_HINTS = {
+  '30/360': 'Every month counts as 30 days over a 360-day year — a twelfth of the annual rate each month. This is how U.S. mortgages, auto loans and most consumer debt accrue.',
+  'A/360': 'Interest accrues on the REAL number of days each period, over a 360-day year — so a year charges about 1.4% more interest than the stated rate suggests. Standard on commercial bank loans.',
+  'A/365': 'Interest accrues on the real days each period over a 365-day year. Common outside the U.S. and on some bank products.',
+};
+
+function inputs() {
+  const amountCents = parseMoney($('amount').value);
+  const annualPct = parseFloat($('rate').value);
+  const years = parseFloat($('years').value);
+  const start = $('start').value ? $('start').value.split('-').map(Number) : null;
+  if (amountCents === null || amountCents === 0 || !Number.isFinite(annualPct) || annualPct < 0 ||
+      !Number.isFinite(years) || years <= 0 || years > 50 || !start) return null;
+  return {
+    amountCents, annualPct,
+    months: Math.round(years * 12),
+    basis: $('basis').value,
+    start,
+    extraCents: parseMoney($('extra').value) || 0,
+    lumpCents: parseMoney($('lump').value) || 0,
+    lumpAt: Math.max(1, parseInt($('lumpat').value, 10) || 1),
+  };
+}
+
+function chartSvg(rows, amountCents) {
+  const W = 720, H = 200, L = 8, R = 8, T = 10, B = 18;
+  const n = rows.length;
+  const maxY = Math.max(amountCents, rows[rows.length - 1] ? 1 : 1);
+  let cum = 0;
+  const cumRows = rows.map((r) => (cum += r.interest));
+  const maxAll = Math.max(maxY, cum);
+  const x = (i) => L + (W - L - R) * (i / Math.max(1, n - 1));
+  const y = (v) => T + (H - T - B) * (1 - v / maxAll);
+  const path = (get) => rows.map((r, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(get(r, i)).toFixed(1)}`).join('');
+  const years = Math.round(n / 12);
+  let ticks = '';
+  for (let yr = 1; yr <= years; yr += Math.max(1, Math.ceil(years / 8))) {
+    const i = Math.min(n - 1, yr * 12 - 1);
+    ticks += `<text x="${x(i).toFixed(1)}" y="${H - 4}" font-size="9" text-anchor="middle" fill="#6C6356">yr ${yr}</text>`;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Balance and cumulative interest over the life of the loan">
+    <line x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}" stroke="#DAD0BC" stroke-width="1"/>
+    <path d="${path((r) => r.bal)}" fill="none" stroke="#9A3B1B" stroke-width="2"/>
+    <path d="${path((_, i) => cumRows[i])}" fill="none" stroke="#2F5D3A" stroke-width="2"/>
+    ${ticks}</svg>`;
+}
+
+function recalc() {
+  const o = inputs();
+  $('basis-hint').textContent = BASIS_HINTS[$('basis').value];
+  if (!o) { $('tiles').innerHTML = ''; $('rowline').textContent = 'Fill in the loan above.'; return; }
+  const s = schedule(o);
+  const base = (o.extraCents || o.lumpCents)
+    ? schedule({ ...o, extraCents: 0, lumpCents: 0 })
+    : null;
+
+  let tiles =
+    `<div class="tile"><b>${usd(s.payCents)}</b><span>monthly payment</span></div>` +
+    `<div class="tile"><b>${usd(s.totalInterest)}</b><span>total interest</span></div>` +
+    `<div class="tile"><b>${usd(s.totalPaid)}</b><span>total paid</span></div>` +
+    `<div class="tile"><b>${fmtDate(s.payoff)}</b><span>paid off</span></div>`;
+  if (base) {
+    const saved = base.totalInterest - s.totalInterest;
+    const monthsCut = base.rows.length - s.rows.length;
+    tiles += `<div class="tile save"><b>${usd(saved)}</b><span>interest saved · ${monthsCut} payment${monthsCut === 1 ? '' : 's'} sooner</span></div>`;
+  }
+  $('tiles').innerHTML = tiles;
+  $('chart').innerHTML = chartSvg(s.rows, o.amountCents);
+  $('rowline').textContent = `${s.rows.length} payments · every cent below sums exactly`;
+
+  const tb = $('sched').tBodies[0];
+  const frag = document.createDocumentFragment();
+  let yInt = 0, yPri = 0, curYear = s.rows[0] && s.rows[0].date[0];
+  const yearRow = (year) => {
+    const tr = document.createElement('tr');
+    tr.className = 'year';
+    tr.innerHTML = `<td>${year} totals</td><td></td><td></td><td>${usd(yInt)}</td><td>${usd(yPri)}</td><td></td><td></td>`;
+    return tr;
+  };
+  for (const r of s.rows) {
+    if (r.date[0] !== curYear) { frag.append(yearRow(curYear)); curYear = r.date[0]; yInt = 0; yPri = 0; }
+    yInt += r.interest; yPri += r.principal + r.extra;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${fmtDate(r.date)}</td><td>${r.k}</td><td>${usd(r.payment)}</td>` +
+      `<td>${usd(r.interest)}</td><td>${usd(r.principal)}</td><td>${r.extra ? usd(r.extra) : ''}</td><td>${usd(r.bal)}</td>`;
+    frag.append(tr);
+  }
+  if (s.rows.length) frag.append(yearRow(curYear));
+  tb.replaceChildren(frag);
+}
+
+for (const id of ['amount', 'rate', 'years', 'start', 'basis', 'extra', 'lump', 'lumpat'])
+  $(id).addEventListener('input', recalc);
+$('print').addEventListener('click', () => print());
+
+// default first payment: the first of next month
+{
+  const now = new Date();
+  const [y, m] = [now.getFullYear(), now.getMonth() + 2];
+  const yy = m > 12 ? y + 1 : y, mm = ((m - 1) % 12) + 1;
+  $('start').value = `${yy}-${String(mm).padStart(2, '0')}-01`;
+}
+
+// Exposed deliberately for the console and the test harness.
+window.misc = { schedule, paymentCents, days30360, addMonths, daysBetween, parseMoney };
+
+recalc();
+</script>
+</body>
+</html>

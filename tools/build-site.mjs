@@ -50,6 +50,7 @@ const TOOLS = [
   { slug: 'qr', title: 'QR', file: 'tool/qr.html', noun: 'QR code maker' },
   { slug: 'verify', title: 'Verify', file: 'tool/verify.html', noun: 'checksum checker' },
   { slug: 'encrypt', title: 'Encrypt', file: 'tool/encrypt.html', noun: 'file encryptor' },
+  { slug: 'loan', title: 'Loan', file: 'tool/loan.html', noun: 'amortization schedule' },
 ];
 
 function copyDir(from, to) {
