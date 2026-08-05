@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PDF — Miscellany</title>
+<meta name="description" content="Merge, split, reorder, rotate and clean PDF pages — entirely on your machine. Contracts and tax returns do not belong on an upload site." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%239A3B1B'/%3E%3Ctext x='8' y='12' text-anchor='middle' font-family='Georgia,serif' font-size='11' font-weight='bold' fill='%23FBF8F2'%3EM%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="apps/pdf/pdf.css" />
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <p class="brand"><a href="https://miscellany.io/">Miscellany</a></p>
+    <h1>PDF</h1>
+    <p class="dek">Merge, split, reorder, rotate and clean the pages of real PDFs &mdash; entirely on your machine. The upload sites want your contracts and tax returns on their servers; here the file never leaves this page, and every part we do not touch comes back byte-for-byte.</p>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <label class="drop" id="drop">
+      <b>Drop PDFs here &mdash; or click to choose</b>
+      <span>Add one file to split, reorder or clean it. Add several to merge them. Nothing is uploaded.</span>
+      <input type="file" id="pick" accept=".pdf,application/pdf" multiple />
+    </label>
+
+    <div id="bench" hidden>
+      <div class="bar">
+        <span class="count" id="count"></span>
+        <span class="spacer"></span>
+        <label class="range">Keep pages <input type="text" id="range" placeholder="e.g. 1-3, 6, 9-12" spellcheck="false" /><button class="btn ghost" id="applyrange" type="button">Apply</button></label>
+        <button class="btn ghost" id="reverse" type="button">Reverse</button>
+      </div>
+      <div class="pages" id="pages"></div>
+      <div class="bar save-bar">
+        <label class="opt"><input type="checkbox" id="stripmeta" /> Strip metadata <span class="muted">(author, title, tool traces, XMP)</span></label>
+        <span class="spacer"></span>
+        <button class="btn" id="save" type="button">Save PDF</button>
+      </div>
+      <p class="status" id="status" aria-live="polite"></p>
+    </div>
+
+    <details class="trust">
+      <summary>What this preserves, what it drops, and why you can trust it</summary>
+      <p><strong>Your file never leaves your machine.</strong> Everything &mdash; parsing, page surgery, saving &mdash; happens in this page. The upload-me PDF sites exist to harvest exactly the documents people most need edited: contracts, statements, tax forms.</p>
+      <p><strong>What we do not touch comes back byte-for-byte.</strong> Fonts, images, page contents and anything else we do not model are copied through as their exact original bytes, not re-encoded. The test suite proves it the way that matters: every page of every saved file renders <em>pixel-identical</em> to its source, across a locked corpus of government PDFs from 1996 to today.</p>
+      <p><strong>Form fields survive</strong> splitting, reordering and rotating a single document (pruned to the pages that remain). Merging two different forms into one is where every tool invents lies about field names &mdash; so on merges we keep the pages and their appearance, and drop interactivity rather than corrupt it.</p>
+      <p><strong>Honestly not here yet:</strong> page thumbnails (we will not bolt on a rendering engine we did not write), bookmarks/outlines are not carried over, and password-protected files are refused outright rather than half-handled.</p>
+      <p><strong>You can read the whole program.</strong> The download button on the front door hands you this entire tool as one file that is its own source.</p>
+    </details>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><strong>Miscellany</strong> &mdash; free, modular, and yours. <a href="https://miscellany.io/">All tools</a></p>
+    <p><a href="https://github.com/zahhmedd1992/miscellany">GitHub</a> &middot; <a href="https://mozilla.org/MPL/2.0/">MPL-2.0</a></p>
+  </div>
+</footer>
+
+<script type="module" src="apps/pdf/pdfapp.js"></script>
+</body>
+</html>

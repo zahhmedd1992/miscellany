@@ -42,6 +42,7 @@ const VERSION = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf
 const TOOLS = [
   { slug: 'sheet', title: 'Sheet', entry: 'index.html', noun: 'spreadsheet' },
   { slug: 'deck', title: 'Deck', entry: 'deck.html', noun: 'slide deck' },
+  { slug: 'pdf', title: 'PDF', entry: 'pdf.html', noun: 'PDF page tool' },
   /* Single-file tools: authored as ONE html file in site/tool/, everything
    * inline. The served page, the download and the source are the same bytes,
    * so there is nothing to bundle and nothing for a visitor to reconcile. */
