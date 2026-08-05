@@ -923,3 +923,71 @@ avoid GitHub, a link labelled "Source" pointing there was the exact confusion th
 edit was meant to remove.
 
 `npm test` after the change: **153 passed, 0 failed, 49/49 byte-identical**.
+
+
+## Round 3 — 2026-08-04 — a leaner download, and source anyone's AI can audit
+
+Zach: *"can the source code download be more simplified... so non technical users
+aren't lost in the sauce"* and *"I want users to be able to have their own AI tools
+review the source code so they don't worry that they are downloading a potentially
+harmful file."*
+
+### Leaner zip
+
+Root went from 5 files to 4, and **every one now has an extension**. `LICENSE` and
+`NOTICE` were extensionless, which on Windows means double-clicking gets you the
+*"How do you want to open this file?"* dialog — precisely the moment a non-technical
+person decides this was a mistake. NOTICE folded into README, LICENSE → `LICENSE.txt`
+(full MPL text kept: a summary-instead-of-text already burned this project once).
+README cut roughly in half and reordered to lead with running it.
+
+Paths split so each artefact can carry its own headers:
+`/download/miscellany-<tool>-source.zip` (`application/zip`, `attachment`) and
+`/source/<tool>.txt` (`text/plain`, **`inline`** — it must render, or the whole
+"read it without downloading anything" offer silently becomes a download).
+
+### The whole source as one readable page
+
+`/source/sheet.txt` (34 files, 353 KB) and `/source/deck.txt` (22 files, 194 KB).
+Every file printed in full, `FILE n of N` headers, generated from the **same closure**
+as the zip in the same pass. The page invites you to read one and then download the
+other, so the build asserts they are the same source **byte for byte**, not merely the
+same file list.
+
+### Two bugs the guards caught, one of them mine
+
+1. **`fs.writeFileSync(..., 'ascii')` corrupted the source.** Node's `ascii` encoding
+   masks the high bit, so `/* Sheet — the entry point` shipped as `/* Sheet  the entry
+   point`. The readable copy had quietly stopped being the code it claimed to be — the
+   exact failure the feature exists to prevent. Fixed to `utf8`, and the byte-identity
+   check now **reads the file back off disk** before comparing, because checking the
+   in-memory string would have sailed straight through it. Re-tested by putting
+   `'ascii'` back: 34 findings, exit 1.
+2. **The no-networking claim is enforced, not asserted.** The build scans the exact
+   closure bytes for `fetch(`, `XMLHttpRequest`, `WebSocket`, `EventSource`,
+   `sendBeacon`, `eval(`, `new Function(`, `importScripts(` and refuses to publish on a
+   hit. Proven by planting a `fetch(` and an `eval(` — both caught — and by planting
+   `evaluate()`, which correctly does **not** trip it.
+
+### ⚠️ The finding that changed the design: AI URL-fetch truncates silently
+
+Handing `https://miscellany.io/source/deck.txt` (the **smaller** file, 194 KB) to an
+AI's URL fetcher returned **13 of 22 files**. Not an error — a clean, confident partial
+read. A security review of the first half of a codebase reads exactly like a review of
+all of it.
+
+Two consequences, both shipped:
+- **"Save the page and attach the file" is now the headline instruction**, on the page
+  and in the file. Attaching has no fetch limit; pasting a link does.
+- **The file ends with `END OF SOURCE - N of N files`**, and the header tells the
+  reader to ask their AI to quote it. The tested AI *did* report it could not see that
+  line and said so unprompted — the marker turns a silent truncation into a detectable
+  one. → [[reference-ai-url-fetch-truncation]]
+
+### Also
+
+- CF purge takes a few seconds to propagate: the verification screenshot taken
+  immediately after `purge_everything` showed the **previous** copy while `curl` a
+  moment later showed the new one. The deploy was fine; the instrument was early.
+  Re-shoot before believing a stale-looking screenshot. → [[reference-cloudflare-stale-assets]]
+- Zip pixel-signatures unchanged after slimming: Sheet `#40964088`, Deck `#d528b170`.
