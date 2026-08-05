@@ -102,19 +102,27 @@ code{
    source zips are, and the build fails if the two ever disagree. */
 .tool + .tool{margin-top:2.4rem;padding-top:2.2rem;border-top:1px solid var(--line)}
 .tool p:last-of-type{margin-bottom:0}
-/* This one note is about both downloads. Sitting at .9rem it read as a
-   footnote to Deck alone, which is the sort of thing only a screenshot
-   tells you. */
-.tool + .note{margin-top:2.2rem}
+/* The answer to "what am I downloading?" sits next to the buttons rather than
+   in a block of prose below them, because that is where the question is asked.
+   <details> so it costs no script — this page has none and the CSP that makes
+   the promise credible is what keeps it that way.
 
-/* A line meant to be selected and pasted into a chat window, so it is set as
-   one: wrapping, not scrolling, because a prompt you have to scroll to copy
-   is a prompt half-copied. */
-.ask{margin:.7rem 0 0}
-.ask code{
-  display:block;padding:.7rem .85rem;font-size:.78rem;line-height:1.55;
-  background:var(--paper-2);border:1px solid var(--line-2);border-radius:4px;
-  color:var(--ink-2);white-space:pre-wrap;overflow-wrap:anywhere;
+   Open, it takes the full row: nested inside a flex line it would otherwise be
+   squeezed into a column the width of the circle. */
+.q{margin-left:.15rem}
+.q summary{
+  list-style:none;cursor:pointer;user-select:none;
+  width:1.7rem;height:1.7rem;border-radius:50%;
+  border:1px solid var(--line-2);color:var(--muted);background:var(--card);
+  font-size:.85rem;font-weight:700;line-height:1.6rem;text-align:center;
+}
+.q summary::-webkit-details-marker{display:none}
+.q summary:hover{border-color:var(--accent);color:var(--accent-2)}
+.q[open]{flex-basis:100%;margin:.3rem 0 0}
+.q[open] summary{border-color:var(--accent);color:var(--accent-2)}
+.q p{
+  margin:.55rem 0 0;font-size:.83rem;line-height:1.6;color:var(--muted);
+  max-width:36rem;
 }
 
 footer{padding:2.5rem 0 3.5rem;background:var(--paper-2);border-top:1px solid var(--line-2);font-size:.85rem;color:var(--muted)}
@@ -142,7 +150,11 @@ footer p{margin:0 0 .5rem}
       <p>Opens your Excel workbook, lets you work in it, and gives it back <strong>without wrecking it</strong>. Change one cell in a file full of pivot tables and macros we cannot even display, and every part we did not touch comes back byte-for-byte.</p>
       <div class="cta">
         <a class="btn" href="./app/">Open Sheet</a>
-        <a class="btn ghost" href="./download/miscellany-sheet-source.zip" download>Download source</a>
+        <a class="btn ghost" href="./download/miscellany-sheet.html" download>Download source</a>
+        <details class="q">
+          <summary title="What am I downloading?" aria-label="What am I downloading?">?</summary>
+          <p>One file. Double-click it and Sheet runs &mdash; no install, no server, no account. That same file <em>is</em> the source: open it in any text editor, or attach it to ChatGPT or Claude and ask <em>&ldquo;does this send my data anywhere?&rdquo;</em> What you check is what runs, because there is only the one file. It contains no networking code at all.</p>
+        </details>
       </div>
     </div>
 
@@ -151,17 +163,13 @@ footer p{margin:0 0 .5rem}
       <p>Slides whose numbers and charts are bound to cells. Edit the sheet and the bar grows, the axis rescales, the percentage recomputes &mdash; with no synchronisation code, because a slide object and a cell are the same kind of thing.</p>
       <div class="cta">
         <a class="btn" href="./app/deck.html">Open Deck</a>
-        <a class="btn ghost" href="./download/miscellany-deck-source.zip" download>Download source</a>
+        <a class="btn ghost" href="./download/miscellany-deck.html" download>Download source</a>
+        <details class="q">
+          <summary title="What am I downloading?" aria-label="What am I downloading?">?</summary>
+          <p>One file. Double-click it and Deck runs &mdash; no install, no server, no account. That same file <em>is</em> the source: open it in any text editor, or attach it to ChatGPT or Claude and ask <em>&ldquo;does this send my data anywhere?&rdquo;</em> What you check is what runs, because there is only the one file. It contains no networking code at all.</p>
+        </details>
       </div>
     </div>
-
-    <p class="note">Each download is the complete app &mdash; every file it runs, nothing fetched. It needs a local web server; the included <code>README.txt</code> has the one line that starts one.</p>
-
-    <p class="note"><strong>Would rather not trust a download?</strong> Read it first &mdash; or have your own AI read it for you. The entire source of each tool is one plain page: <a href="./source/sheet.txt">sheet.txt</a> &middot; <a href="./source/deck.txt">deck.txt</a>. Open one, save it (<code>Ctrl+S</code>, or <code>&#8984;S</code> on a Mac), attach it to ChatGPT, Claude or Gemini, and ask:</p>
-
-    <p class="ask"><code>This is the complete source code of a free app I am thinking about using. Does it send my data anywhere, or do anything else I should worry about?</code></p>
-
-    <p class="note">There is no networking code anywhere in either tool &mdash; no fetch, no analytics, nothing that can send anything &mdash; and the build refuses to publish if that ever stops being true. Attach the file rather than pasting its link: it is long, and several AI tools read only the first part of a long page. The file ends with a marker so you can tell.</p>
   </div>
 </section>
 
