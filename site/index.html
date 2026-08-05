@@ -34,10 +34,12 @@ body{
 .wide{max-width:60rem;margin:0 auto;padding:0 var(--gutter)}
 a{color:var(--accent-2);text-underline-offset:2px}
 
+/* The masthead is two lines now. Padding tuned for two lines, not for the
+   standfirst-plus-button-row it used to carry. */
 header{
   border-bottom:1px solid var(--line);
   background:linear-gradient(180deg,#FFFDF8,var(--paper));
-  padding:clamp(3rem,9vw,5rem) 0 clamp(2rem,5vw,3rem);
+  padding:clamp(2.6rem,7.5vw,4.2rem) 0 clamp(2.2rem,5vw,3rem);
 }
 .brand{
   font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;
@@ -45,14 +47,10 @@ header{
 }
 h1{
   font-weight:700;font-size:clamp(2.1rem,6.5vw,3.4rem);line-height:1.05;
-  letter-spacing:-.03em;margin:0 0 1rem;
+  letter-spacing:-.03em;margin:0;
 }
 h1 em{font-style:normal;color:var(--accent)}
-.stand{
-  font-size:clamp(1.05rem,2.4vw,1.24rem);line-height:1.5;
-  color:var(--ink-2);margin:0 0 1.8rem;max-width:34rem;
-}
-.cta{display:flex;flex-wrap:wrap;gap:.7rem;align-items:center}
+.cta{display:flex;flex-wrap:wrap;gap:.7rem;align-items:center;margin:1.15rem 0 0}
 .btn{
   display:inline-block;background:var(--accent);color:#fff;text-decoration:none;
   padding:.62rem 1.15rem;border-radius:4px;font-weight:600;font-size:.95rem;
@@ -64,6 +62,7 @@ h1 em{font-style:normal;color:var(--accent)}
 .note{font-size:.83rem;color:var(--muted);margin:.9rem 0 0}
 
 section{padding:clamp(2.6rem,6vw,3.6rem) 0;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:none}
 h2{
   font-weight:700;font-size:clamp(1.35rem,3.4vw,1.75rem);
   letter-spacing:-.02em;margin:0 0 .8rem;
@@ -91,10 +90,22 @@ code{
 .card h3{margin:0 0 .35rem;font-size:.95rem}
 .card p{margin:0;font-size:.9rem;color:var(--ink-2)}
 
-.nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));gap:1rem;margin:1.5rem 0}
+/* Flex, not an auto-fit grid: the tally is one figure today and should sit at
+   its own width rather than stretch across the measure. It stays a row when
+   there is a second one. */
+.nums{display:flex;flex-wrap:wrap;gap:1.2rem 2.4rem;margin:0 0 2.4rem}
 .num{border-left:2px solid var(--accent);padding-left:.85rem}
 .num b{display:block;font-size:1.5rem;font-weight:700;letter-spacing:-.02em;line-height:1.15}
 .num span{font-size:.82rem;color:var(--muted)}
+
+/* One entry per tool. The count above is generated from the same list the
+   source zips are, and the build fails if the two ever disagree. */
+.tool + .tool{margin-top:2.4rem;padding-top:2.2rem;border-top:1px solid var(--line)}
+.tool p:last-of-type{margin-bottom:0}
+/* This one note is about both downloads. Sitting at .9rem it read as a
+   footnote to Deck alone, which is the sort of thing only a screenshot
+   tells you. */
+.tool + .note{margin-top:2.2rem}
 
 footer{padding:2.5rem 0 3.5rem;background:var(--paper-2);border-top:1px solid var(--line-2);font-size:.85rem;color:var(--muted)}
 footer a{color:var(--accent-2)}
@@ -107,54 +118,41 @@ footer p{margin:0 0 .5rem}
   <div class="wrap">
     <p class="brand">Miscellany</p>
     <h1>Free software that <em>composes</em></h1>
-    <p class="stand">A spreadsheet and a slide deck that share one document — so a figure on a slide <em>is</em> the number in the sheet, not a copy of it.</p>
-    <div class="cta">
-      <a class="btn" href="./app/">Open Sheet</a>
-      <a class="btn" href="./app/deck.html">Open Deck</a>
-      <a class="btn" href="./app/compose.html">Both, one document</a>
-      <a class="btn ghost" href="https://github.com/zahhmedd1992/miscellany">Source on GitHub</a>
-    </div>
-    <p class="note">Free and open source, MPL-2.0. No account, no install, no dependencies. Your file is read in the browser tab &mdash; the page makes no external requests at all.</p>
   </div>
 </header>
 
 <section>
   <div class="wrap">
     <div class="nums">
-      <div class="num"><b>49&nbsp;/&nbsp;49</b><span>real workbooks round-trip byte-identical</span></div>
-      <div class="num"><b>100.00%</b><span>agreement with Excel's own computed results</span></div>
-      <div class="num"><b>0</b><span>dependencies, accounts, and bytes uploaded</span></div>
+      <div class="num"><b data-tally="tools">2</b><span>tools available, free and open</span></div>
     </div>
 
-    <h2>Sheet</h2>
-    <p>Opens your Excel workbook, lets you work in it, and gives it back <strong>without wrecking it</strong>. Change one cell in a file full of pivot tables and macros we cannot even display, and every part we did not touch comes back byte-for-byte.</p>
+    <div class="tool">
+      <h2>Sheet</h2>
+      <p>Opens your Excel workbook, lets you work in it, and gives it back <strong>without wrecking it</strong>. Change one cell in a file full of pivot tables and macros we cannot even display, and every part we did not touch comes back byte-for-byte.</p>
+      <div class="cta">
+        <a class="btn" href="./app/">Open Sheet</a>
+        <a class="btn ghost" href="./source/miscellany-sheet-source.zip" download>Download source</a>
+      </div>
+    </div>
 
-    <h2>Deck</h2>
-    <p>Slides whose numbers and charts are bound to cells. Edit the sheet and the bar grows, the axis rescales, the percentage recomputes &mdash; with no synchronisation code, because a slide object and a cell are the same kind of thing.</p>
+    <div class="tool">
+      <h2>Deck</h2>
+      <p>Slides whose numbers and charts are bound to cells. Edit the sheet and the bar grows, the axis rescales, the percentage recomputes &mdash; with no synchronisation code, because a slide object and a cell are the same kind of thing.</p>
+      <div class="cta">
+        <a class="btn" href="./app/deck.html">Open Deck</a>
+        <a class="btn ghost" href="./source/miscellany-deck-source.zip" download>Download source</a>
+      </div>
+    </div>
 
-    <h2>One document</h2>
-    <p>Both apps save to a single file that stores <strong>what you typed, never what was computed</strong>, one node per line so it diffs in Git. Nothing in the format can execute.</p>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <h2>What is missing</h2>
-    <ul>
-      <li>76 formula functions, not 500 &mdash; no pivot tables, macros or array formulas (preserved on save, not editable)</li>
-      <li>Deck cannot open or write PowerPoint files</li>
-      <li>Charts already in a workbook are read-only; in Deck you can create them</li>
-      <li>No accounts, no server, no sharing &mdash; deliberate</li>
-      <li>The HTTP and AI tool API is generated from the command list, but nothing serves it yet</li>
-      <li>Young. 679 automated checks plus four suites driving the real interface, but few users</li>
-    </ul>
+    <p class="note">Each zip is the complete app &mdash; every file it runs, nothing fetched. Open the folder through any local web server; the included <code>README.txt</code> has the one line that does it.</p>
   </div>
 </section>
 
 <footer>
   <div class="wrap">
     <p><strong>Miscellany</strong> &mdash; free, modular, and yours.</p>
-    <p><a href="https://github.com/zahhmedd1992/miscellany">Source</a> &middot; <a href="https://mozilla.org/MPL/2.0/">MPL-2.0</a> &middot; <a href="./app/">Sheet</a> &middot; <a href="./app/deck.html">Deck</a> &middot; <a href="./app/compose.html">Both</a> &middot; <a href="https://opensignal.miscellany.io">Open Signal</a></p>
+    <p><a href="https://github.com/zahhmedd1992/miscellany">GitHub</a> &middot; <a href="https://mozilla.org/MPL/2.0/">MPL-2.0</a></p>
   </div>
 </footer>
 

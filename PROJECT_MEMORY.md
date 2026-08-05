@@ -845,3 +845,81 @@ Zach looked at the live page and caught two things:
 
 `npm test` now runs on a fresh clone (agreement.mjs needs the corpus, which is fetched
 via `corpus/build_corpus.py`, never redistributed).
+
+
+## Front door, round 2 — 2026-08-04 (Zach's 4 marked-up edits)
+
+Zach sent `edits-miscellany.io.md`: 4 notes bound to 15 elements. Applied in full,
+built, verified, deployed, purged, re-verified live.
+
+**What he cut** (notes 1 + 3): the standfirst, the "free and open source, MPL-2.0…"
+note, the whole 4-button hero CTA row, the "One document" heading + paragraph, the
+entire "What is missing" section, two of the three stat figures (100.00%, 0), and
+four of six footer links (Sheet · Deck · Both · Open Signal).
+
+**What he asked for** (notes 2 + 4):
+- the surviving stat becomes *"a running tally of total software tools available"*
+- Open + **Download source** buttons under each of Sheet and Deck — *"I do not want
+  a user to have to go to github for the source"*
+
+### The one judgement call: Compose is off the front door, and the tally is 2
+
+Three independent deletions — the Compose button, the "One document" prose, the
+footer "Both" link — all point the same way. So no soft re-link. `/app/compose.html`
+still ships and still works; it is a second view of one document, not a third tool.
+
+**The load-bearing constraint is that the number and the list cannot disagree.** Both
+now come from one array, `TOOLS` in `tools/build-site.mjs`, which also drives zip
+generation. `site/index.html` stays the literal, readable source (no injection — this
+project's whole claim is "no bundler, no transform"); instead the build *verifies* it:
+`<b data-tally="tools">N</b>` must equal `TOOLS.length`, every tool must have a
+download link, and every `./…` href must resolve in `dist/`. Drift exits 1.
+**Both guards were tested by making them fire.**
+
+### Source downloads, without a bundler and without GitHub
+
+`dist/source/miscellany-{sheet,deck}-source.zip`, generated at build time.
+
+- `tools/make-zip.mjs` — ~60 lines. Node's own `deflateRawSync` + the app's own
+  `crc32.js`, so there is one crc32 in the project. **Timestamps pinned** (2026-08-04
+  12:00): a source archive whose hash moves because the tree was checked out on a
+  different day is not verifiable. Falls back to STORED when deflate grows an entry.
+- Contents are a **walked dependency closure**, not a hand list: `<link>`/`<script>`
+  out of the entry HTML, then transitive JS imports (literal dynamic ones included,
+  `node:` skipped). Sheet = 34 files, Deck = 22, each + README.txt + LICENSE + NOTICE
+  under one top-level folder so unzipping does not spray into Downloads.
+- `_headers` serves `/source/*` as `application/zip` + `Content-Disposition: attachment`.
+- README.txt is **pure ASCII on purpose** — it is the file a stranger opens in whatever
+  editor Windows hands them, and an em dash arriving as `â€"` makes a download look
+  broken before they run anything. It leads with the file:// limitation, because
+  double-clicking `index.html` yields a blank page (browsers refuse ES modules over
+  file://) and that reads as "the download is broken".
+
+### Why the hand-listed closure would have shipped broken
+
+**`src/index.html` loads `apps/deck/deck.css` as well as its own** — Sheet can hold a
+slide. Any curated file list drops it.
+
+And the test that catches it is not obvious. With `sheet.css` missing the page still
+renders every string a text assertion would look for — "Open .xlsx", "Save document",
+the whole toolbar. **A text-only check passes on a visibly broken app.** The grid is a
+`<canvas>`, so no DOM assertion can ever see a cell either.
+
+What actually works: **FNV-1a over the whole canvas bitmap, zip-served vs dist-served.**
+Sheet `1280x770 #40964088`, Deck `1280x764 #d528b170` — identical both sides. Removing
+one CSS file collapses the canvas to its 300x150 default and the signature diverges;
+removing one core module leaves no canvas at all. Both proven by deletion.
+`scratchpad/verify.py`, `verify_live.py`.
+
+### Live verification (curl was not trusted — it 200'd three broken apps here once)
+
+Real browser: front door tally `2`, h2s `[Sheet, Deck]`, zero deleted strings still
+present, no real console errors. Zips **downloaded by clicking the button**: CRC-valid,
+byte-identical to the build. `/app/`, `/app/deck`, `/app/compose` all still paint.
+The only console errors are the edge beacon our own CSP blocks.
+
+Footer "Source" → **"GitHub"**: with two "Download source" buttons that deliberately
+avoid GitHub, a link labelled "Source" pointing there was the exact confusion the
+edit was meant to remove.
+
+`npm test` after the change: **153 passed, 0 failed, 49/49 byte-identical**.
