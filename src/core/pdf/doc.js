@@ -28,6 +28,10 @@ export class PdfDoc {
     doc.entries = entries;
     doc.trailer = trailer;
     doc.encrypted = trailer.has('Encrypt');
+    /* In an encrypted file every stream body is ciphertext — including the
+     * object streams the next loop would inflate. Decide encryption FIRST,
+     * or the refusal surfaces as a misleading decompression error. */
+    if (doc.encrypted) return doc;
 
     /* Decode every object stream any live entry points into. After this,
      * object access is synchronous. */

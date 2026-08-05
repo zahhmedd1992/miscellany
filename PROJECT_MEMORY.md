@@ -770,6 +770,47 @@ hand-computing constants into the test.
 
 ---
 
+# 2026-08-05 — PDF TOOLKIT LIVE: tally 6 → 7 (the flagship shipped)
+
+`/app/pdf.html` — merge, split/extract, reorder, rotate, delete, strip
+metadata. Sheet-pattern (entry + modules in `src/core/pdf/` + `src/apps/pdf/`,
+bundled download). **Corpus-first, same discipline as xlsx: 17 SHA-locked
+gov PDFs (1.2→1.7, classic+stream+hybrid xrefs, objstms, forms, 13MB FR
+daily, 1,039-page bills), page counts agreed by pikepdf AND pdfium before
+our reader existed.**
+
+- Reader: byte lexer · classic tables · xref streams (W/Index + PNG
+  predictors) · hybrid /XRefStm · /Prev chains · object streams · page-tree
+  inheritance. **Free entries record freedom, never a claim** (hybrid files
+  mark free the objects their XRefStm defines). 133 read checks + EVERY live
+  object parses.
+- Writer: ONE page-list model expresses all ops. Single-source: untouched
+  objects keep number + exact original bytes; objstm members emitted as their
+  verbatim member bytes. Merge: only later docs renumbered (doc A stays
+  byte-preserved); stream DATA verbatim always. AcroForm kept single-source
+  (fields pruned via /P to surviving pages), dropped on merges (stated).
+- **The exam is pixels: every op's output renders PIXEL-IDENTICAL under
+  pdfium to its source pages, and pikepdf's checker reports no warnings NOT
+  inherited from the source** (irs-i1040gi ships one quirky Flate stream —
+  preserved quirk, not our bug). UI exam drives real clicks incl. clicked
+  downloads; bundle does page surgery from file:// with zero net attempts.
+- Traps: (1) encrypted files must be detected BEFORE objstm pre-decode or
+  the refusal surfaces as a fake decompression error; (2) **make-single
+  hardcoded `<body><div id=root>` — fine for canvas apps that build their own
+  DOM, but it silently DISCARDED the PDF page's entire static body**; now
+  carries the entry body verbatim (minus its module script tag), proven
+  byte-equivalent for Sheet/Deck by bundles_smoke.py; (3) pikepdf 10.x:
+  `check_pdf_syntax()` (instance method) is the qpdf --check equivalent.
+- Live-verified: tally 7, tool functions at miscellany.io with a real IRS
+  form, download byte-identical. Known live-check quirk: patchright teardown
+  can raise "event loop already running" AFTER all assertions pass — rerun,
+  don't chase.
+
+v2 backlog (stated on-page): thumbnails (needs own renderer), outlines
+carry-over, page numbers stamp, compress, encrypted-with-password open.
+
+---
+
 # 2026-08-04 — FOUR SINGLE-FILE TOOLS SHIPPED LIVE: tally 2 → 6
 
 Zach set /goal "proceed with the recommended sequence." Shipped **Passwords, QR,

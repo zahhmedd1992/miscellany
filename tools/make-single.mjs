@@ -136,6 +136,15 @@ export function makeSingleFile(srcDir, files, tool, version, problems) {
   const entryHtml = read(tool.entry);
   const title = (entryHtml.match(/<title>([^<]*)<\/title>/) || [, tool.title])[1];
   const pageStyle = (entryHtml.match(/<style>([\s\S]*?)<\/style>/) || [, ''])[1].trim();
+  /* The entry's own BODY, carried verbatim minus its module <script> tag
+   * (the bundle below replaces it). Sheet and Deck bodies are a bare #root
+   * that their shell fills, so for them this changes nothing — but a tool
+   * with real static markup (PDF's drop zone and workbench) would otherwise
+   * bundle into a page with a script and no DOM, which is exactly what
+   * happened the first time. */
+  const bodyInner = ((entryHtml.match(/<body>([\s\S]*?)<\/body>/) || [, '<div id="root"></div>'])[1])
+    .replace(/<script\b[^>]*\bsrc\s*=[^>]*>\s*<\/script>/gi, '')
+    .trim();
 
   const total = js.length + files.filter((f) => f.endsWith('.css')).length;
 
@@ -204,7 +213,7 @@ ${pageStyle}
 </style>
 </head>
 <body>
-<div id="root"></div>
+${bodyInner}
 <script>
 ${script}
 </script>
