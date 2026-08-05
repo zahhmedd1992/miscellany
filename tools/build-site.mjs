@@ -18,6 +18,7 @@
  *                   and its whole source, in the same file
  */
 
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -41,6 +42,13 @@ const VERSION = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf
 const TOOLS = [
   { slug: 'sheet', title: 'Sheet', entry: 'index.html', noun: 'spreadsheet' },
   { slug: 'deck', title: 'Deck', entry: 'deck.html', noun: 'slide deck' },
+  /* Single-file tools: authored as ONE html file in site/tool/, everything
+   * inline. The served page, the download and the source are the same bytes,
+   * so there is nothing to bundle and nothing for a visitor to reconcile. */
+  { slug: 'passwords', title: 'Passwords', file: 'tool/passwords.html', noun: 'password generator' },
+  { slug: 'qr', title: 'QR', file: 'tool/qr.html', noun: 'QR code maker' },
+  { slug: 'verify', title: 'Verify', file: 'tool/verify.html', noun: 'checksum checker' },
+  { slug: 'encrypt', title: 'Encrypt', file: 'tool/encrypt.html', noun: 'file encryptor' },
 ];
 
 function copyDir(from, to) {
@@ -149,7 +157,7 @@ function scanForReach(tool, blobs, stage) {
 fs.mkdirSync(path.join(DIST, 'download'), { recursive: true });
 const builds = [];
 
-for (const tool of TOOLS) {
+for (const tool of TOOLS.filter((t) => t.entry)) {
   const files = closureOf(tool.entry);
   const blobs = new Map(files.map((rel) => [rel, fs.readFileSync(path.join(SRC, rel))]));
   scanForReach(tool, blobs, 'src');
@@ -170,6 +178,41 @@ for (const tool of TOOLS) {
     if (!html.includes(rel)) problems.push(`${tool.title}: ${rel} is in the closure but not named in ${name}`);
   }
   builds.push({ ...tool, name, files: files.length, bytes: Buffer.byteLength(html, 'utf8') });
+}
+
+/* ---- single-file tools --------------------------------------------------
+ *
+ * These need no bundler: the file in site/tool/ IS the app, the source and
+ * the download. The build's whole job is verification plus two copies —
+ * /tool/<slug>.html to use in place, /download/miscellany-<slug>.html to
+ * take away — and one number per tool: the SHA-256 of its inline script.
+ *
+ * That hash goes into a per-path Content-Security-Policy so the SERVED copy
+ * executes exactly the script in the file and nothing else. The edge has
+ * injected scripts into this site's pages before, twice; with a hash policy
+ * an injected inline script simply does not run, whoever spliced it in. The
+ * file also carries its own <meta> policy for the copy on somebody's disk. */
+fs.mkdirSync(path.join(DIST, 'tool'), { recursive: true });
+const toolHashes = new Map();
+for (const tool of TOOLS.filter((t) => t.file)) {
+  const src = path.join(ROOT, 'site', tool.file);
+  if (!fs.existsSync(src)) { problems.push(`${tool.title}: site/${tool.file} does not exist`); continue; }
+  const text = fs.readFileSync(src, 'utf8');
+  if (text.includes('\r')) problems.push(`${tool.title}: CRLF line endings — the CSP hash must match the exact served bytes, keep LF`);
+  scanForReach(tool, new Map([[tool.file, Buffer.from(text, 'utf8')]]), 'file');
+
+  const scripts = [...text.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+  if (scripts.length !== 1) {
+    problems.push(`${tool.title}: expected exactly one <script> block, found ${scripts.length} — the CSP hash covers one`);
+  }
+  toolHashes.set(tool.slug, crypto.createHash('sha256').update(scripts[0]?.[1] ?? '', 'utf8').digest('base64'));
+
+  if (!/<meta http-equiv="Content-Security-Policy"/.test(text)) {
+    problems.push(`${tool.title}: no <meta> CSP — the downloaded copy must refuse the network on its own`);
+  }
+  fs.writeFileSync(path.join(DIST, 'tool', `${tool.slug}.html`), text, 'utf8');
+  fs.writeFileSync(path.join(DIST, 'download', `miscellany-${tool.slug}.html`), text, 'utf8');
+  builds.push({ ...tool, name: `miscellany-${tool.slug}.html`, files: 1, bytes: Buffer.byteLength(text, 'utf8') });
 }
 
 /* ---- enforce the promise, rather than merely keeping it ----------------
@@ -233,6 +276,15 @@ fs.writeFileSync(path.join(DIST, '_headers'),
 ${TOOLS.map((t) => [`/download/miscellany-${t.slug}.html`, `/download/miscellany-${t.slug}`].map((p) => `${p}
   Content-Type: application/octet-stream
   Content-Disposition: attachment; filename="miscellany-${t.slug}.html"
+`).join('')).join('')}
+# Single-file tools carry their one script INLINE, which the site-wide
+# script-src 'self' would refuse — so each tool path replaces the policy with
+# one that names the exact SHA-256 of the script in the file. Injected inline
+# scripts (the edge has spliced in two kinds here before) do not match the
+# hash and do not run. Both path forms again, because of the .html redirect.
+${TOOLS.filter((t) => t.file).map((t) => [`/tool/${t.slug}`, `/tool/${t.slug}.html`].map((p) => `${p}
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'none'; script-src 'sha256-${toolHashes.get(t.slug)}'; style-src 'unsafe-inline'; img-src data: blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
 `).join('')).join('')}`);
 
 /* ---- verify the output is self-contained ---- */

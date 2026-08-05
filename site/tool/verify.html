@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<!-- This policy is enforced by your browser, even when this file is opened
+     from your own disk: no connections, no remote scripts, nothing loaded
+     from anywhere. The page cannot send anything, because the browser will
+     refuse to let it. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Verify — Miscellany</title>
+<meta name="description" content="Check a file's SHA-256 fingerprint against the one the publisher lists — entirely on your machine, with no upload and no size limit. This one file is the whole program and its own source." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%239A3B1B'/%3E%3Ctext x='8' y='12' text-anchor='middle' font-family='Georgia,serif' font-size='11' font-weight='bold' fill='%23FBF8F2'%3EM%3C/text%3E%3C/svg%3E" />
+<style>
+/* System fonts only, nothing loaded from anywhere. */
+:root{
+  --paper:#FBF8F2; --paper-2:#F5F0E6; --card:#FFFDF8;
+  --ink:#211C16; --ink-2:#4A4338; --muted:#6C6356;
+  --line:#E7DFD0; --line-2:#DAD0BC;
+  --accent:#9A3B1B; --accent-2:#7E2F14; --accent-tint:#F3E7DF;
+  --green:#2F5D3A; --bad:#8C2B2B;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono","Segoe UI Mono",Menlo,Consolas,monospace;
+  --measure:44rem;
+  --gutter:clamp(1.15rem,5vw,2.5rem);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--sans);font-size:17px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--measure);margin:0 auto;padding:0 var(--gutter)}
+a{color:var(--accent-2);text-underline-offset:2px}
+
+header{
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,#FFFDF8,var(--paper));
+  padding:clamp(1.6rem,4.5vw,2.4rem) 0 clamp(1.4rem,3.5vw,2rem);
+}
+.brand{
+  font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--muted);font-weight:700;margin:0 0 .9rem;
+}
+.brand a{color:inherit;text-decoration:none}
+.brand a:hover{color:var(--accent-2)}
+h1{
+  font-weight:700;font-size:clamp(1.7rem,5vw,2.4rem);line-height:1.08;
+  letter-spacing:-.03em;margin:0 0 .45rem;
+}
+.dek{margin:0;color:var(--ink-2);font-size:.98rem;max-width:38rem}
+
+main{padding:clamp(1.8rem,4.5vw,2.6rem) 0 1rem}
+
+.drop{
+  display:block;   /* a <label> is inline by default — the padded box needs block */
+  border:2px dashed var(--line-2);border-radius:8px;background:var(--card);
+  padding:2rem 1.2rem;text-align:center;cursor:pointer;margin:0 0 1.1rem;
+  transition:border-color .12s, background .12s;
+}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-tint)}
+.drop b{display:block;font-size:1.02rem;margin-bottom:.25rem}
+.drop span{font-size:.86rem;color:var(--muted)}
+.drop input{display:none}
+
+fieldset{
+  border:1px solid var(--line);border-radius:6px;background:var(--card);
+  padding:1rem 1.1rem 1.1rem;margin:0 0 1.1rem;
+}
+legend{font-size:.8rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:0 .4rem}
+input[type=text]{
+  width:100%;font-family:var(--mono);font-size:.9rem;padding:.5rem .6rem;
+  border:1px solid var(--line-2);border-radius:4px;background:#fff;color:var(--ink);
+}
+.hint{font-size:.83rem;color:var(--muted);margin:.5rem 0 0}
+
+.file{
+  background:var(--card);border:1px solid var(--line);border-radius:6px;
+  padding:.95rem 1.05rem;margin:0 0 .8rem;
+}
+.file h3{margin:0 0 .1rem;font-size:.98rem;font-weight:650;word-break:break-all}
+.file .meta{font-size:.8rem;color:var(--muted);margin:0 0 .6rem}
+.hash{margin:.45rem 0 0}
+.hash .label{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.hash .label small{font-weight:400;text-transform:none;letter-spacing:0}
+.hash code{
+  display:block;font-family:var(--mono);font-size:.82rem;word-break:break-all;
+  background:var(--paper-2);border:1px solid var(--line);border-radius:3px;
+  padding:.35rem .5rem;margin-top:.15rem;user-select:all;
+}
+.badge{display:inline-block;font-size:.78rem;font-weight:700;border-radius:3px;padding:.1rem .5rem;margin-left:.4rem;vertical-align:1px}
+.badge.match{background:#E4EFE6;color:var(--green);border:1px solid #BFD8C4}
+.badge.differ{background:#F7E4E4;color:var(--bad);border:1px solid #E3BCBC}
+progress{width:100%;height:.5rem;accent-color:var(--accent)}
+.btn{
+  display:inline-block;background:none;color:var(--accent-2);text-decoration:none;
+  padding:.3rem .7rem;border-radius:4px;font-weight:600;font-size:.82rem;
+  border:1px solid var(--line-2);font-family:var(--sans);cursor:pointer;
+}
+.btn:hover{background:var(--accent-tint);border-color:var(--accent)}
+.btn:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.selftest{font-size:.8rem;color:var(--muted);margin:.2rem 0 0}
+.selftest b.okc{color:var(--green)}
+.selftest b.badc{color:var(--bad)}
+
+.trust{margin:1.9rem 0 0;border-top:1px solid var(--line);padding-top:1.3rem}
+.trust summary{cursor:pointer;font-weight:650;font-size:.95rem;color:var(--ink-2)}
+.trust p{font-size:.88rem;color:var(--ink-2);margin:.7rem 0 0;max-width:40rem}
+code.inline{
+  font-family:var(--mono);font-size:.85em;background:var(--paper-2);
+  border:1px solid var(--line);border-radius:2px;padding:.05em .3em;white-space:nowrap;
+}
+footer{margin-top:2.6rem;padding:1.6rem 0 2.6rem;background:var(--paper-2);border-top:1px solid var(--line-2);font-size:.85rem;color:var(--muted)}
+footer p{margin:0 0 .4rem}
+footer a{color:var(--accent-2)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <p class="brand"><a href="https://miscellany.io/">Miscellany</a></p>
+    <h1>Verify</h1>
+    <p class="dek">Check that a file is exactly what its publisher says it is. Drop the file, and its SHA&#8209;256 fingerprint is computed right here on your machine &mdash; no upload, no size limit &mdash; then compared against the one you paste from the download page.</p>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <label class="drop" id="drop">
+      <b>Drop files here &mdash; or click to choose</b>
+      <span>Any type, any size. Nothing is uploaded; the file is read and fingerprinted in place.</span>
+      <input type="file" id="pick" multiple />
+    </label>
+
+    <fieldset>
+      <legend>Compare against</legend>
+      <input type="text" id="expected" spellcheck="false" autocomplete="off"
+             placeholder="Paste the checksum the publisher lists &mdash; spaces and capitals don't matter" />
+      <p class="hint">Publishers list this next to the download as &ldquo;SHA-256&rdquo;, &ldquo;checksum&rdquo; or &ldquo;digest&rdquo;. If the fingerprints match, the file arrived intact and untampered.</p>
+    </fieldset>
+
+    <div id="files"></div>
+    <p class="selftest" id="selftest"></p>
+
+    <details class="trust">
+      <summary>Why you can trust this page</summary>
+      <p><strong>The file never leaves your machine.</strong> Checksum sites that ask you to upload the file defeat the entire purpose &mdash; you would be sending the thing you are worried about to a stranger. Here the security policy at the top of this file makes your browser refuse every network connection, so the file cannot go anywhere even in principle.</p>
+      <p><strong>The arithmetic is checked before you rely on it.</strong> On every load, this page runs its SHA&#8209;256 and SHA&#8209;1 against the official test vectors, and against your browser's own independent implementation on random data. The result is printed at the bottom of the file list. Two implementations agreeing is evidence; one asserting is a press release.</p>
+      <p><strong>SHA-256 is the one that matters.</strong> SHA&#8209;1 is shown because older download pages still list it, and it remains fine for spotting corruption &mdash; but collisions can be manufactured for it, so treat it as a legacy cross-check. MD5 is deliberately absent: it has been broken since 2004, and printing it would lend it credibility.</p>
+      <p><strong>You are reading the whole program.</strong> This one file is the entire tool and its own source &mdash; open it in a text editor, or attach it to an AI and ask what it does. What you check is what runs, because there is only the one file.</p>
+    </details>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><strong>Miscellany</strong> &mdash; free, modular, and yours. <a href="https://miscellany.io/">All tools</a></p>
+    <p><a href="https://github.com/zahhmedd1992/miscellany">GitHub</a> &middot; <a href="https://mozilla.org/MPL/2.0/">MPL-2.0</a></p>
+  </div>
+</footer>
+
+<script>
+/* Verify — a Miscellany tool.                https://miscellany.io
+ *
+ * This file is the complete program and its own source. It makes no network
+ * connections of any kind, and the Content-Security-Policy at the top of
+ * the file instructs the browser to refuse any — enforcement, not a promise.
+ * It stores nothing.
+ *
+ * Licence: MPL-2.0 (https://mozilla.org/MPL/2.0/), part of
+ * https://github.com/zahhmedd1992/miscellany
+ *
+ * SHA-256 and SHA-1 are implemented here from their specifications
+ * (FIPS 180-4), streaming, so a file of any size is fingerprinted in 8 MB
+ * slices without ever being held in memory whole. The browser's own
+ * WebCrypto cannot stream — it needs the entire file in RAM at once, which
+ * for a 6 GB disk image is a crash, not a checksum. WebCrypto is still
+ * here, though, doing what it is good at: on load, the page hashes random
+ * buffers with BOTH implementations and refuses to call itself healthy
+ * unless they agree with each other and with the official test vectors.
+ */
+'use strict';
+
+/* ---- SHA-256, streaming (FIPS 180-4) ------------------------------------ */
+
+const K256 = [
+  0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+  0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+  0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+  0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+  0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+  0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+  0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+  0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2,
+];
+
+function Sha256() {
+  this.h = new Int32Array([0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]);
+  this.buf = new Uint8Array(64); this.bufLen = 0; this.lenLo = 0; this.lenHi = 0;
+  this.w = new Int32Array(64);
+}
+Sha256.prototype._block = function (b, off) {
+  const w = this.w, h = this.h;
+  for (let i = 0; i < 16; i++) {
+    w[i] = (b[off] << 24) | (b[off + 1] << 16) | (b[off + 2] << 8) | b[off + 3]; off += 4;
+  }
+  for (let i = 16; i < 64; i++) {
+    const a = w[i - 15], b2 = w[i - 2];
+    const s0 = ((a >>> 7) | (a << 25)) ^ ((a >>> 18) | (a << 14)) ^ (a >>> 3);
+    const s1 = ((b2 >>> 17) | (b2 << 15)) ^ ((b2 >>> 19) | (b2 << 13)) ^ (b2 >>> 10);
+    w[i] = (w[i - 16] + s0 + w[i - 7] + s1) | 0;
+  }
+  let a = h[0], b3 = h[1], c = h[2], d = h[3], e = h[4], f = h[5], g = h[6], hh = h[7];
+  for (let i = 0; i < 64; i++) {
+    const S1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));
+    const ch = (e & f) ^ (~e & g);
+    const t1 = (hh + S1 + ch + K256[i] + w[i]) | 0;
+    const S0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));
+    const maj = (a & b3) ^ (a & c) ^ (b3 & c);
+    const t2 = (S0 + maj) | 0;
+    hh = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b3; b3 = a; a = (t1 + t2) | 0;
+  }
+  h[0] = (h[0] + a) | 0; h[1] = (h[1] + b3) | 0; h[2] = (h[2] + c) | 0; h[3] = (h[3] + d) | 0;
+  h[4] = (h[4] + e) | 0; h[5] = (h[5] + f) | 0; h[6] = (h[6] + g) | 0; h[7] = (h[7] + hh) | 0;
+};
+Sha256.prototype.update = function (chunk) {
+  const lo = this.lenLo + chunk.length;
+  this.lenHi += Math.floor(lo / 0x100000000); this.lenLo = lo >>> 0;
+  let off = 0;
+  if (this.bufLen) {
+    const need = Math.min(64 - this.bufLen, chunk.length);
+    this.buf.set(chunk.subarray(0, need), this.bufLen);
+    this.bufLen += need; off = need;
+    if (this.bufLen === 64) { this._block(this.buf, 0); this.bufLen = 0; }
+  }
+  while (off + 64 <= chunk.length) { this._block(chunk, off); off += 64; }
+  if (off < chunk.length) { this.buf.set(chunk.subarray(off), 0); this.bufLen = chunk.length - off; }
+  return this;
+};
+Sha256.prototype.hex = function () {
+  const bitsLo = this.lenLo * 8, bitsHi = this.lenHi * 8 + Math.floor(this.lenLo / 0x20000000);
+  const pad = new Uint8Array(((this.bufLen < 56 ? 56 : 120) - this.bufLen) + 8);
+  pad[0] = 0x80;
+  const dv = new DataView(pad.buffer);
+  dv.setUint32(pad.length - 8, bitsHi >>> 0);
+  dv.setUint32(pad.length - 4, bitsLo >>> 0);
+  this.update(pad);
+  return Array.from(this.h, (x) => (x >>> 0).toString(16).padStart(8, '0')).join('');
+};
+
+/* ---- SHA-1, streaming (FIPS 180-4; legacy cross-check only) ------------- */
+
+function Sha1() {
+  this.h = new Int32Array([0x67452301,0xEFCDAB89,0x98BADCFE,0x10325476,0xC3D2E1F0]);
+  this.buf = new Uint8Array(64); this.bufLen = 0; this.lenLo = 0; this.lenHi = 0;
+  this.w = new Int32Array(80);
+}
+Sha1.prototype._block = function (b, off) {
+  const w = this.w, h = this.h;
+  for (let i = 0; i < 16; i++) {
+    w[i] = (b[off] << 24) | (b[off + 1] << 16) | (b[off + 2] << 8) | b[off + 3]; off += 4;
+  }
+  for (let i = 16; i < 80; i++) {
+    const x = w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16];
+    w[i] = (x << 1) | (x >>> 31);
+  }
+  let a = h[0], b2 = h[1], c = h[2], d = h[3], e = h[4];
+  for (let i = 0; i < 80; i++) {
+    let f, k;
+    if (i < 20) { f = (b2 & c) | (~b2 & d); k = 0x5A827999; }
+    else if (i < 40) { f = b2 ^ c ^ d; k = 0x6ED9EBA1; }
+    else if (i < 60) { f = (b2 & c) | (b2 & d) | (c & d); k = 0x8F1BBCDC; }
+    else { f = b2 ^ c ^ d; k = 0xCA62C1D6; }
+    const t = (((a << 5) | (a >>> 27)) + f + e + k + w[i]) | 0;
+    e = d; d = c; c = (b2 << 30) | (b2 >>> 2); b2 = a; a = t;
+  }
+  h[0] = (h[0] + a) | 0; h[1] = (h[1] + b2) | 0; h[2] = (h[2] + c) | 0; h[3] = (h[3] + d) | 0; h[4] = (h[4] + e) | 0;
+};
+Sha1.prototype.update = Sha256.prototype.update;
+Sha1.prototype.hex = Sha256.prototype.hex;
+
+/* ---- hashing a Blob in slices ------------------------------------------- */
+
+const SLICE = 8 * 1024 * 1024;
+
+async function hashBlob(blob, onProgress) {
+  const s256 = new Sha256(), s1 = new Sha1();
+  for (let at = 0; at < blob.size; at += SLICE) {
+    const chunk = new Uint8Array(await blob.slice(at, at + SLICE).arrayBuffer());
+    s256.update(chunk); s1.update(chunk);
+    if (onProgress) onProgress(Math.min(at + SLICE, blob.size));
+  }
+  return { sha256: s256.hex(), sha1: s1.hex() };
+}
+
+const hashText = (text) => {
+  const bytes = new TextEncoder().encode(text);
+  return { sha256: new Sha256().update(bytes).hex(), sha1: new Sha1().update(bytes).hex() };
+};
+
+/* ---- the self-test: vectors, and agreement with WebCrypto --------------- */
+
+const VECTORS = [
+  ['', 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+       'da39a3ee5e6b4b0d3255bfef95601890afd80709'],
+  ['abc', 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+          'a9993e364706816aba3e25717850c26c9cd0d89d'],
+  ['abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq',
+   '248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1',
+   '84983e441c3bd26ebaae4aa1f95129e5e54670f1'],
+];
+
+async function selfTest() {
+  for (const [msg, want256, want1] of VECTORS) {
+    const got = hashText(msg);
+    if (got.sha256 !== want256 || got.sha1 !== want1) return 'failed the official test vectors';
+  }
+  for (const len of [0, 1, 55, 56, 63, 64, 65, 1000, 100000]) {
+    const data = new Uint8Array(len);
+    crypto.getRandomValues(data.subarray(0, Math.min(len, 65536)));
+    const ours = new Sha256().update(data).hex();
+    const theirs = [...new Uint8Array(await crypto.subtle.digest('SHA-256', data))]
+      .map((b) => b.toString(16).padStart(2, '0')).join('');
+    if (ours !== theirs) return `disagrees with the browser's WebCrypto at ${len} bytes`;
+  }
+  return null;
+}
+
+/* ---- page wiring --------------------------------------------------------- */
+
+const $ = (id) => document.getElementById(id);
+const filesBox = $('files');
+const results = [];   // {name, sha256, sha1, el}
+
+const norm = (s) => s.toLowerCase().replace(/[^0-9a-f]/g, '');
+
+function verdictAll() {
+  const want = norm($('expected').value);
+  for (const r of results) {
+    const badge256 = r.el.querySelector('[data-badge="256"]');
+    const badge1 = r.el.querySelector('[data-badge="1"]');
+    for (const [badge, hex] of [[badge256, r.sha256], [badge1, r.sha1]]) {
+      if (!badge) continue;
+      if (!want || !hex) { badge.textContent = ''; badge.className = 'badge'; continue; }
+      if (want === hex) { badge.textContent = 'matches'; badge.className = 'badge match'; }
+      else if (want.length === hex.length) { badge.textContent = 'DIFFERENT'; badge.className = 'badge differ'; }
+      else { badge.textContent = ''; badge.className = 'badge'; }
+    }
+  }
+}
+
+const fmtSize = (n) => n >= 1e9 ? (n / 1e9).toFixed(2) + ' GB'
+  : n >= 1e6 ? (n / 1e6).toFixed(1) + ' MB'
+  : n >= 1e3 ? (n / 1e3).toFixed(1) + ' KB' : n + ' bytes';
+
+async function addFile(file) {
+  const el = document.createElement('div');
+  el.className = 'file';
+  el.innerHTML = '<h3></h3><p class="meta"></p><progress max="1" value="0"></progress>' +
+    '<div class="hash" hidden><span class="label">SHA-256 <span class="badge" data-badge="256"></span></span><code data-h="256"></code>' +
+    '<button class="btn" type="button" data-copy="256" style="margin-top:.35rem">Copy</button></div>' +
+    '<div class="hash" hidden><span class="label">SHA-1 <small>(legacy)</small> <span class="badge" data-badge="1"></span></span><code data-h="1"></code></div>';
+  el.querySelector('h3').textContent = file.name;
+  el.querySelector('.meta').textContent = fmtSize(file.size);
+  filesBox.prepend(el);
+  const rec = { name: file.name, sha256: null, sha1: null, el };
+  results.push(rec);
+
+  const prog = el.querySelector('progress');
+  const t0 = performance.now();
+  const { sha256, sha1 } = await hashBlob(file, (done) => { prog.value = done / (file.size || 1); });
+  const secs = (performance.now() - t0) / 1000;
+  rec.sha256 = sha256; rec.sha1 = sha1;
+  prog.remove();
+  el.querySelector('.meta').textContent =
+    fmtSize(file.size) + ' · fingerprinted in ' + (secs < 0.1 ? 'under a tenth of a second' : secs.toFixed(1) + 's');
+  el.querySelector('[data-h="256"]').textContent = sha256;
+  el.querySelector('[data-h="1"]').textContent = sha1;
+  for (const d of el.querySelectorAll('.hash')) d.hidden = false;
+  el.querySelector('[data-copy]').addEventListener('click', async (e) => {
+    try { await navigator.clipboard.writeText(sha256); e.target.textContent = 'Copied'; }
+    catch { e.target.textContent = 'Select it and press Ctrl+C'; }
+    setTimeout(() => { e.target.textContent = 'Copy'; }, 1400);
+  });
+  verdictAll();
+}
+
+$('pick').addEventListener('change', () => { for (const f of $('pick').files) addFile(f); $('pick').value = ''; });
+const drop = $('drop');
+drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+drop.addEventListener('drop', (e) => {
+  e.preventDefault(); drop.classList.remove('over');
+  for (const f of e.dataTransfer.files) addFile(f);
+});
+$('expected').addEventListener('input', verdictAll);
+
+selfTest().then((err) => {
+  const el = $('selftest');
+  if (err) {
+    el.innerHTML = '<b class="badc">Self-test FAILED:</b> ' + err + ' — do not rely on this copy.';
+  } else {
+    el.innerHTML = '<b class="okc">Self-test passed</b> — official FIPS 180-4 vectors, and agreement with your browser’s own independent implementation on 9 random buffers.';
+  }
+});
+
+// Exposed deliberately, so you can inspect or drive the hasher from the
+// console — try misc.hashText('abc').
+window.misc = { Sha256, Sha1, hashBlob, hashText, selfTest, norm };
+</script>
+</body>
+</html>

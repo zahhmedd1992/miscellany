@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<!-- This policy is enforced by your browser, even when this file is opened
+     from your own disk: no connections, no remote scripts, nothing loaded
+     from anywhere. The page cannot send anything, because the browser will
+     refuse to let it. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; base-uri 'none'; form-action 'none'" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>QR — Miscellany</title>
+<meta name="description" content="Make QR codes that are yours forever — no account, no subscription, no tracking, no expiry. Runs entirely on your machine; this one file is the whole program and its own source." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%239A3B1B'/%3E%3Ctext x='8' y='12' text-anchor='middle' font-family='Georgia,serif' font-size='11' font-weight='bold' fill='%23FBF8F2'%3EM%3C/text%3E%3C/svg%3E" />
+<style>
+/* System fonts only, nothing loaded from anywhere — the point of this page
+   is that it cannot phone home, so it does not load so much as a font. */
+:root{
+  --paper:#FBF8F2; --paper-2:#F5F0E6; --card:#FFFDF8;
+  --ink:#211C16; --ink-2:#4A4338; --muted:#6C6356;
+  --line:#E7DFD0; --line-2:#DAD0BC;
+  --accent:#9A3B1B; --accent-2:#7E2F14; --accent-tint:#F3E7DF;
+  --green:#2F5D3A; --bad:#8C2B2B;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono","Segoe UI Mono",Menlo,Consolas,monospace;
+  --measure:44rem;
+  --gutter:clamp(1.15rem,5vw,2.5rem);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--sans);font-size:17px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--measure);margin:0 auto;padding:0 var(--gutter)}
+a{color:var(--accent-2);text-underline-offset:2px}
+
+header{
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,#FFFDF8,var(--paper));
+  padding:clamp(1.6rem,4.5vw,2.4rem) 0 clamp(1.4rem,3.5vw,2rem);
+}
+.brand{
+  font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--muted);font-weight:700;margin:0 0 .9rem;
+}
+.brand a{color:inherit;text-decoration:none}
+.brand a:hover{color:var(--accent-2)}
+h1{
+  font-weight:700;font-size:clamp(1.7rem,5vw,2.4rem);line-height:1.08;
+  letter-spacing:-.03em;margin:0 0 .45rem;
+}
+.dek{margin:0;color:var(--ink-2);font-size:.98rem;max-width:38rem}
+
+main{padding:clamp(1.8rem,4.5vw,2.6rem) 0 1rem}
+
+.tabs{display:flex;gap:.5rem;margin:0 0 1rem;flex-wrap:wrap}
+.tab{
+  background:none;border:1px solid var(--line-2);border-radius:4px;color:var(--ink-2);
+  font:inherit;font-size:.92rem;font-weight:600;padding:.42rem .95rem;cursor:pointer;
+}
+.tab[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.tab:not([aria-pressed="true"]):hover{background:var(--accent-tint);border-color:var(--accent)}
+
+fieldset{
+  border:1px solid var(--line);border-radius:6px;background:var(--card);
+  padding:1rem 1.1rem 1.1rem;margin:0 0 1rem;
+}
+legend{font-size:.8rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:0 .4rem}
+textarea{
+  width:100%;font-family:var(--mono);font-size:.95rem;line-height:1.5;
+  border:1px solid var(--line-2);border-radius:4px;background:#fff;color:var(--ink);
+  padding:.55rem .65rem;min-height:4.6rem;resize:vertical;
+}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:.7rem .9rem}
+.field{display:flex;flex-direction:column;gap:.2rem}
+.field span{font-size:.82rem;font-weight:600;color:var(--ink-2)}
+.field input,.field select{
+  font:inherit;font-size:.94rem;padding:.42rem .55rem;border:1px solid var(--line-2);
+  border-radius:4px;background:#fff;color:var(--ink);width:100%;
+}
+label.opt{display:flex;gap:.45rem;align-items:center;font-size:.94rem;cursor:pointer}
+label.opt input{accent-color:var(--accent);width:1.05rem;height:1.05rem;cursor:pointer}
+.row{display:flex;flex-wrap:wrap;gap:.9rem 1.6rem;align-items:center;margin:.55rem 0 0}
+.row .field{flex-direction:row;align-items:center;gap:.5rem}
+.row .field input[type=color]{width:2.6rem;height:1.9rem;padding:.1rem}
+.hint{font-size:.83rem;color:var(--muted);margin:.55rem 0 0}
+.hint.warn{color:var(--bad);font-weight:600}
+
+.preview{
+  background:var(--card);border:1px solid var(--line);border-radius:6px;
+  padding:1.2rem 1.1rem 1.15rem;margin:0 0 1.3rem;text-align:center;
+}
+#svgbox{display:inline-block;line-height:0;max-width:min(21rem,88vw)}
+#svgbox svg{width:100%;height:auto;display:block}
+.caption{font-size:.83rem;color:var(--muted);margin:.85rem 0 0}
+.caption b{color:var(--ink-2)}
+.dl-row{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;justify-content:center;margin:.9rem 0 0}
+.btn{
+  display:inline-block;background:var(--accent);color:#fff;text-decoration:none;
+  padding:.55rem 1.05rem;border-radius:4px;font-weight:600;font-size:.92rem;
+  border:1px solid var(--accent);font-family:var(--sans);cursor:pointer;
+}
+.btn:hover{background:var(--accent-2);border-color:var(--accent-2)}
+.btn.ghost{background:none;color:var(--accent-2)}
+.btn.ghost:hover{background:var(--accent-tint)}
+.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+select.mini{font:inherit;font-size:.9rem;padding:.35rem .45rem;border:1px solid var(--line-2);border-radius:4px;background:#fff;color:var(--ink)}
+
+.trust{margin:1.9rem 0 0;border-top:1px solid var(--line);padding-top:1.3rem}
+.trust summary{cursor:pointer;font-weight:650;font-size:.95rem;color:var(--ink-2)}
+.trust p{font-size:.88rem;color:var(--ink-2);margin:.7rem 0 0;max-width:40rem}
+code{
+  font-family:var(--mono);font-size:.85em;background:var(--paper-2);
+  border:1px solid var(--line);border-radius:2px;padding:.05em .3em;
+  white-space:nowrap;
+}
+footer{margin-top:2.6rem;padding:1.6rem 0 2.6rem;background:var(--paper-2);border-top:1px solid var(--line-2);font-size:.85rem;color:var(--muted)}
+footer p{margin:0 0 .4rem}
+footer a{color:var(--accent-2)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <p class="brand"><a href="https://miscellany.io/">Miscellany</a></p>
+    <h1>QR</h1>
+    <p class="dek">QR codes that are yours forever. No account, no subscription, no tracking, and nothing that expires &mdash; the code is a plain image, made on your machine, and it points wherever you told it to for as long as you keep it.</p>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <div class="tabs" role="group" aria-label="What the code holds">
+      <button class="tab" id="tab-text" type="button" aria-pressed="true">Text or link</button>
+      <button class="tab" id="tab-wifi" type="button" aria-pressed="false">Wi&#8209;Fi</button>
+      <button class="tab" id="tab-card" type="button" aria-pressed="false">Contact card</button>
+    </div>
+
+    <fieldset id="panel-text">
+      <legend>Text or link</legend>
+      <textarea id="in-text" spellcheck="false" placeholder="https://example.com &mdash; or any text at all">https://miscellany.io/</textarea>
+    </fieldset>
+
+    <fieldset id="panel-wifi" hidden>
+      <legend>Wi&#8209;Fi network</legend>
+      <div class="grid2">
+        <label class="field"><span>Network name (SSID)</span><input id="w-ssid" autocomplete="off" /></label>
+        <label class="field"><span>Password</span><input id="w-pass" autocomplete="off" /></label>
+        <label class="field"><span>Security</span>
+          <select id="w-sec"><option value="WPA">WPA / WPA2 / WPA3</option><option value="WEP">WEP (old)</option><option value="nopass">None (open)</option></select>
+        </label>
+      </div>
+      <div class="row"><label class="opt"><input type="checkbox" id="w-hidden" /> Hidden network</label></div>
+      <p class="hint">Scanning the code offers to join the network &mdash; phones have understood this format for years.</p>
+    </fieldset>
+
+    <fieldset id="panel-card" hidden>
+      <legend>Contact card</legend>
+      <div class="grid2">
+        <label class="field"><span>First name</span><input id="c-first" autocomplete="off" /></label>
+        <label class="field"><span>Last name</span><input id="c-last" autocomplete="off" /></label>
+        <label class="field"><span>Phone</span><input id="c-phone" autocomplete="off" /></label>
+        <label class="field"><span>Email</span><input id="c-email" autocomplete="off" /></label>
+        <label class="field"><span>Organisation</span><input id="c-org" autocomplete="off" /></label>
+        <label class="field"><span>Title</span><input id="c-title" autocomplete="off" /></label>
+        <label class="field"><span>Website</span><input id="c-url" autocomplete="off" /></label>
+      </div>
+      <p class="hint">Scanning offers to save the contact. Empty fields are simply left out.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Code options</legend>
+      <div class="row">
+        <label class="field"><span>Damage tolerance</span>
+          <select id="ec" class="mini">
+            <option value="L">L &mdash; 7%, smallest code</option>
+            <option value="M" selected>M &mdash; 15%, the usual choice</option>
+            <option value="Q">Q &mdash; 25%</option>
+            <option value="H">H &mdash; 30%, for print that gets abused</option>
+          </select>
+        </label>
+        <label class="field"><span>Ink</span><input type="color" id="fg" value="#000000" /></label>
+        <label class="field"><span>Paper</span><input type="color" id="bg" value="#ffffff" /></label>
+      </div>
+      <p class="hint" id="colorhint"></p>
+    </fieldset>
+
+    <div class="preview">
+      <div id="svgbox" role="img" aria-label="The generated QR code"></div>
+      <p class="caption" id="caption"></p>
+      <div class="dl-row">
+        <button class="btn" id="dl-png" type="button">Download PNG</button>
+        <select id="pngsize" class="mini" aria-label="PNG size">
+          <option value="512">512 px</option>
+          <option value="1024" selected>1024 px</option>
+          <option value="2048">2048 px</option>
+        </select>
+        <button class="btn ghost" id="dl-svg" type="button">Download SVG</button>
+      </div>
+      <p class="hint">Scan it with your phone before you print five hundred of them.</p>
+    </div>
+
+    <details class="trust">
+      <summary>Why you can trust this page</summary>
+      <p><strong>The code never expires and tracks nobody.</strong> Services that sell &ldquo;dynamic&rdquo; QR codes route your scans through their server so they can charge you monthly and log every visitor &mdash; and the code dies when you stop paying. This page writes your text straight into the image. There is nothing in the middle, so there is nothing to expire and nobody watching.</p>
+      <p><strong>It runs entirely on your machine.</strong> The security policy at the top of this file tells your browser to refuse every kind of network connection. Your Wi&#8209;Fi password and your contact details never leave this page &mdash; enforced by the browser, not promised by us.</p>
+      <p><strong>It is the real thing, built from the specification.</strong> Encoding, Reed&ndash;Solomon error correction, mask selection &mdash; all implemented here in the open, in this file, and tested by machine-decoding every one of the 160 size-and-tolerance combinations the standard defines.</p>
+      <p><strong>You are reading the whole program.</strong> This one file is the entire tool and its own source &mdash; open it in a text editor, or attach it to an AI and ask what it does. What you check is what runs, because there is only the one file.</p>
+    </details>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><strong>Miscellany</strong> &mdash; free, modular, and yours. <a href="https://miscellany.io/">All tools</a></p>
+    <p><a href="https://github.com/zahhmedd1992/miscellany">GitHub</a> &middot; <a href="https://mozilla.org/MPL/2.0/">MPL-2.0</a></p>
+  </div>
+</footer>
+
+<script>
+/* QR — a Miscellany tool.                    https://miscellany.io
+ *
+ * This file is the complete program and its own source. It makes no network
+ * connections of any kind, and the Content-Security-Policy at the top of
+ * the file instructs the browser to refuse any — enforcement, not a promise.
+ * It stores nothing.
+ *
+ * Licence: MPL-2.0 (https://mozilla.org/MPL/2.0/), part of
+ * https://github.com/zahhmedd1992/miscellany
+ *
+ * This is a from-scratch implementation of the QR code symbology
+ * (ISO/IEC 18004): numeric, alphanumeric and byte modes; versions 1–40;
+ * error-correction levels L/M/Q/H; Reed–Solomon over GF(256) with the
+ * 0x11D primitive polynomial; interleaving; all eight masks scored with the
+ * four penalty rules; format and version information with their BCH codes.
+ * Byte mode is written as UTF-8 without an ECI header, which is what every
+ * phone made in the last decade assumes. Nothing here is a wrapper around
+ * somebody's library — the tables below are the standard's own.
+ */
+'use strict';
+
+/* ---- the standard's tables --------------------------------------------- */
+
+/* Alignment pattern centre coordinates, versions 2–40 (v1 has none). */
+const ALIGN = [
+  [], [], [6,18], [6,22], [6,26], [6,30], [6,34],
+  [6,22,38], [6,24,42], [6,26,46], [6,28,50], [6,30,54], [6,32,58], [6,34,62],
+  [6,26,46,66], [6,26,48,70], [6,26,50,74], [6,30,54,78], [6,30,56,82], [6,30,58,86], [6,34,62,90],
+  [6,28,50,72,94], [6,26,50,74,98], [6,30,54,78,102], [6,28,54,80,106], [6,32,58,84,110], [6,30,58,86,114], [6,34,62,90,118],
+  [6,26,50,74,98,122], [6,30,54,78,102,126], [6,26,52,78,104,130], [6,30,56,82,108,134], [6,34,60,86,112,138], [6,30,58,86,114,142], [6,34,62,90,118,146],
+  [6,30,54,78,102,126,150], [6,24,50,76,102,128,154], [6,28,54,80,106,132,158], [6,32,58,84,110,136,162], [6,26,54,82,110,138,166], [6,30,58,86,114,142,170],
+];
+
+/* Error-correction characteristics, versions 1–40.
+ * ECT[version][level] = [ecCodewordsPerBlock, [[blockCount, dataCodewords], …]]
+ * with level order L, M, Q, H. Every version's four levels sum to the same
+ * total codeword count, and the test suite checks that total against the
+ * count derived independently from the symbol's geometry. */
+const ECT = [null,
+  [[7,[[1,19]]],   [10,[[1,16]]],  [13,[[1,13]]],          [17,[[1,9]]]],
+  [[10,[[1,34]]],  [16,[[1,28]]],  [22,[[1,22]]],          [28,[[1,16]]]],
+  [[15,[[1,55]]],  [26,[[1,44]]],  [18,[[2,17]]],          [22,[[2,13]]]],
+  [[20,[[1,80]]],  [18,[[2,32]]],  [26,[[2,24]]],          [16,[[4,9]]]],
+  [[26,[[1,108]]], [24,[[2,43]]],  [18,[[2,15],[2,16]]],   [22,[[2,11],[2,12]]]],
+  [[18,[[2,68]]],  [16,[[4,27]]],  [24,[[4,19]]],          [28,[[4,15]]]],
+  [[20,[[2,78]]],  [18,[[4,31]]],  [18,[[2,14],[4,15]]],   [26,[[4,13],[1,14]]]],
+  [[24,[[2,97]]],  [22,[[2,38],[2,39]]], [22,[[4,18],[2,19]]], [26,[[4,14],[2,15]]]],
+  [[30,[[2,116]]], [22,[[3,36],[2,37]]], [20,[[4,16],[4,17]]], [24,[[4,12],[4,13]]]],
+  [[18,[[2,68],[2,69]]], [26,[[4,43],[1,44]]], [24,[[6,19],[2,20]]], [28,[[6,15],[2,16]]]],
+  [[20,[[4,81]]],  [30,[[1,50],[4,51]]], [28,[[4,22],[4,23]]], [24,[[3,12],[8,13]]]],
+  [[24,[[2,92],[2,93]]], [22,[[6,36],[2,37]]], [26,[[4,20],[6,21]]], [28,[[7,14],[4,15]]]],
+  [[26,[[4,107]]], [22,[[8,37],[1,38]]], [24,[[8,20],[4,21]]], [22,[[12,11],[4,12]]]],
+  [[30,[[3,115],[1,116]]], [24,[[4,40],[5,41]]], [20,[[11,16],[5,17]]], [24,[[11,12],[5,13]]]],
+  [[22,[[5,87],[1,88]]],   [24,[[5,41],[5,42]]], [30,[[5,24],[7,25]]],  [24,[[11,12],[7,13]]]],
+  [[24,[[5,98],[1,99]]],   [28,[[7,45],[3,46]]], [24,[[15,19],[2,20]]], [30,[[3,15],[13,16]]]],
+  [[28,[[1,107],[5,108]]], [28,[[10,46],[1,47]]],[28,[[1,22],[15,23]]], [28,[[2,14],[17,15]]]],
+  [[30,[[5,120],[1,121]]], [26,[[9,43],[4,44]]], [28,[[17,22],[1,23]]], [28,[[2,14],[19,15]]]],
+  [[28,[[3,113],[4,114]]], [26,[[3,44],[11,45]]],[26,[[17,21],[4,22]]], [26,[[9,13],[16,14]]]],
+  [[28,[[3,107],[5,108]]], [26,[[3,41],[13,42]]],[30,[[15,24],[5,25]]], [28,[[15,15],[10,16]]]],
+  [[28,[[4,116],[4,117]]], [26,[[17,42]]],       [28,[[17,22],[6,23]]], [30,[[19,16],[6,17]]]],
+  [[28,[[2,111],[7,112]]], [28,[[17,46]]],       [30,[[7,24],[16,25]]], [24,[[34,13]]]],
+  [[30,[[4,121],[5,122]]], [28,[[4,47],[14,48]]],[30,[[11,24],[14,25]]],[30,[[16,15],[14,16]]]],
+  [[30,[[6,117],[4,118]]], [28,[[6,45],[14,46]]],[30,[[11,24],[16,25]]],[30,[[30,16],[2,17]]]],
+  [[26,[[8,106],[4,107]]], [28,[[8,47],[13,48]]],[30,[[7,24],[22,25]]], [30,[[22,15],[13,16]]]],
+  [[28,[[10,114],[2,115]]],[28,[[19,46],[4,47]]],[28,[[28,22],[6,23]]], [30,[[33,16],[4,17]]]],
+  [[30,[[8,122],[4,123]]], [28,[[22,45],[3,46]]],[30,[[8,23],[26,24]]], [30,[[12,15],[28,16]]]],
+  [[30,[[3,117],[10,118]]],[28,[[3,45],[23,46]]],[30,[[4,24],[31,25]]], [30,[[11,15],[31,16]]]],
+  [[30,[[7,116],[7,117]]], [28,[[21,45],[7,46]]],[30,[[1,23],[37,24]]], [30,[[19,15],[26,16]]]],
+  [[30,[[5,115],[10,116]]],[28,[[19,47],[10,48]]],[30,[[15,24],[25,25]]],[30,[[23,15],[25,16]]]],
+  [[30,[[13,115],[3,116]]],[28,[[2,46],[29,47]]],[30,[[42,24],[1,25]]], [30,[[23,15],[28,16]]]],
+  [[30,[[17,115]]],        [28,[[10,46],[23,47]]],[30,[[10,24],[35,25]]],[30,[[19,15],[35,16]]]],
+  [[30,[[17,115],[1,116]]],[28,[[14,46],[21,47]]],[30,[[29,24],[19,25]]],[30,[[11,15],[46,16]]]],
+  [[30,[[13,115],[6,116]]],[28,[[14,46],[23,47]]],[30,[[44,24],[7,25]]], [30,[[59,16],[1,17]]]],
+  [[30,[[12,121],[7,122]]],[28,[[12,47],[26,48]]],[30,[[39,24],[14,25]]],[30,[[22,15],[41,16]]]],
+  [[30,[[6,121],[14,122]]],[28,[[6,47],[34,48]]],[30,[[46,24],[10,25]]],[30,[[2,15],[64,16]]]],
+  [[30,[[17,122],[4,123]]],[28,[[29,46],[14,47]]],[30,[[49,24],[10,25]]],[30,[[24,15],[46,16]]]],
+  [[30,[[4,122],[18,123]]],[28,[[13,46],[32,47]]],[30,[[48,24],[14,25]]],[30,[[42,15],[32,16]]]],
+  [[30,[[20,117],[4,118]]],[28,[[40,47],[7,48]]],[30,[[43,24],[22,25]]],[30,[[10,15],[67,16]]]],
+  [[30,[[19,118],[6,119]]],[28,[[18,47],[31,48]]],[30,[[34,24],[34,25]]],[30,[[20,15],[61,16]]]],
+];
+
+const LEVELS = { L: 0, M: 1, Q: 2, H: 3 };
+/* Format-information bits for each level (the standard's own oddity: M is 00). */
+const LEVEL_BITS = { L: 1, M: 0, Q: 3, H: 2 };
+
+const ALNUM = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:';
+
+/* ---- GF(256) and Reed–Solomon ------------------------------------------ */
+
+const GF_EXP = new Uint8Array(512), GF_LOG = new Uint8Array(256);
+(function () {
+  let x = 1;
+  for (let i = 0; i < 255; i++) {
+    GF_EXP[i] = x; GF_LOG[x] = i;
+    x <<= 1;
+    if (x & 0x100) x ^= 0x11D;
+  }
+  for (let i = 255; i < 512; i++) GF_EXP[i] = GF_EXP[i - 255];
+})();
+
+const gfMul = (a, b) => (a && b) ? GF_EXP[GF_LOG[a] + GF_LOG[b]] : 0;
+
+/** Generator polynomial for `n` error-correction codewords. */
+function rsGenerator(n) {
+  let g = [1];
+  for (let i = 0; i < n; i++) {
+    const next = new Array(g.length + 1).fill(0);
+    for (let j = 0; j < g.length; j++) {
+      next[j] ^= gfMul(g[j], GF_EXP[i]);
+      next[j + 1] ^= g[j];
+    }
+    g = next;
+  }
+  return g.reverse(); // highest degree first
+}
+
+/** The `n` Reed–Solomon codewords for `data`. */
+function rsEncode(data, n) {
+  const gen = rsGenerator(n);
+  const rem = new Uint8Array(n);
+  for (const byte of data) {
+    const factor = byte ^ rem[0];
+    rem.copyWithin(0, 1); rem[n - 1] = 0;
+    if (factor) for (let i = 0; i < n; i++) rem[i] ^= gfMul(gen[i + 1], factor);
+  }
+  return rem;
+}
+
+/* ---- bit stream --------------------------------------------------------- */
+
+function Bits() { this.bits = []; }
+Bits.prototype.push = function (value, count) {
+  for (let i = count - 1; i >= 0; i--) this.bits.push((value >> i) & 1);
+};
+Bits.prototype.bytes = function () {
+  const out = new Uint8Array(Math.ceil(this.bits.length / 8));
+  this.bits.forEach((b, i) => { if (b) out[i >> 3] |= 0x80 >> (i & 7); });
+  return out;
+};
+
+/* ---- encoding ----------------------------------------------------------- */
+
+function modeFor(text) {
+  if (/^[0-9]+$/.test(text)) return 'numeric';
+  if ([...text].every((c) => ALNUM.includes(c))) return 'alnum';
+  return 'byte';
+}
+
+function cciBits(version, mode) {
+  const group = version <= 9 ? 0 : version <= 26 ? 1 : 2;
+  return { numeric: [10, 12, 14], alnum: [9, 11, 13], byte: [8, 16, 16] }[mode][group];
+}
+
+function payloadBits(text, mode) {
+  if (mode === 'numeric') {
+    const r = text.length % 3;
+    return 10 * Math.floor(text.length / 3) + (r === 2 ? 7 : r === 1 ? 4 : 0);
+  }
+  if (mode === 'alnum') return 11 * Math.floor(text.length / 2) + 6 * (text.length % 2);
+  return 8 * new TextEncoder().encode(text).length;
+}
+
+function dataCodewords(version, level) {
+  return ECT[version][LEVELS[level]][1].reduce((a, [count, len]) => a + count * len, 0);
+}
+function totalCodewords(version) {
+  const [ec, blocks] = ECT[version][0];
+  return blocks.reduce((a, [count, len]) => a + count * (len + ec), 0);
+}
+
+function chooseVersion(text, level) {
+  const mode = modeFor(text);
+  for (let v = 1; v <= 40; v++) {
+    if (4 + cciBits(v, mode) + payloadBits(text, mode) <= 8 * dataCodewords(v, level)) return { version: v, mode };
+  }
+  return null;
+}
+
+function encodeData(text, version, level) {
+  const mode = modeFor(text);
+  const bits = new Bits();
+  if (mode === 'numeric') {
+    bits.push(1, 4); bits.push(text.length, cciBits(version, 'numeric'));
+    for (let i = 0; i < text.length; i += 3) {
+      const chunk = text.slice(i, i + 3);
+      bits.push(Number(chunk), [0, 4, 7, 10][chunk.length]);
+    }
+  } else if (mode === 'alnum') {
+    bits.push(2, 4); bits.push(text.length, cciBits(version, 'alnum'));
+    for (let i = 0; i + 1 < text.length; i += 2) {
+      bits.push(ALNUM.indexOf(text[i]) * 45 + ALNUM.indexOf(text[i + 1]), 11);
+    }
+    if (text.length % 2) bits.push(ALNUM.indexOf(text[text.length - 1]), 6);
+  } else {
+    const bytes = new TextEncoder().encode(text);
+    bits.push(4, 4); bits.push(bytes.length, cciBits(version, 'byte'));
+    for (const b of bytes) bits.push(b, 8);
+  }
+  const capacity = 8 * dataCodewords(version, level);
+  if (bits.bits.length > capacity) throw new Error('too long for version');
+  bits.push(0, Math.min(4, capacity - bits.bits.length));       // terminator
+  while (bits.bits.length % 8) bits.bits.push(0);               // to a byte edge
+  const pad = [0xEC, 0x11];
+  for (let i = 0; bits.bits.length < capacity; i++) bits.push(pad[i % 2], 8);
+  return bits.bytes();
+}
+
+/** Split into blocks, add Reed–Solomon, interleave — the standard's order. */
+function buildCodewords(data, version, level) {
+  const [ecPer, groups] = ECT[version][LEVELS[level]];
+  const blocks = [];
+  let at = 0;
+  for (const [count, len] of groups) {
+    for (let i = 0; i < count; i++) { blocks.push(data.slice(at, at + len)); at += len; }
+  }
+  const ecs = blocks.map((b) => rsEncode(b, ecPer));
+  const out = [];
+  const maxLen = Math.max(...blocks.map((b) => b.length));
+  for (let i = 0; i < maxLen; i++) for (const b of blocks) if (i < b.length) out.push(b[i]);
+  for (let i = 0; i < ecPer; i++) for (const e of ecs) out.push(e[i]);
+  return Uint8Array.from(out);
+}
+
+/* ---- the matrix --------------------------------------------------------- */
+
+function baseMatrix(version) {
+  const size = 4 * version + 17;
+  const m = Array.from({ length: size }, () => new Uint8Array(size));
+  const fn = Array.from({ length: size }, () => new Uint8Array(size));
+  const set = (r, c, v) => { m[r][c] = v; fn[r][c] = 1; };
+
+  const finder = (r0, c0) => {
+    for (let r = -1; r <= 7; r++) for (let c = -1; c <= 7; c++) {
+      const rr = r0 + r, cc = c0 + c;
+      if (rr < 0 || cc < 0 || rr >= size || cc >= size) continue;
+      const on = r >= 0 && r <= 6 && c >= 0 && c <= 6 &&
+        (r === 0 || r === 6 || c === 0 || c === 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4));
+      set(rr, cc, on ? 1 : 0);
+    }
+  };
+  finder(0, 0); finder(0, size - 7); finder(size - 7, 0);
+
+  for (let i = 8; i < size - 8; i++) {           // timing
+    if (!fn[6][i]) set(6, i, i % 2 ? 0 : 1);
+    if (!fn[i][6]) set(i, 6, i % 2 ? 0 : 1);
+  }
+
+  for (const r of ALIGN[version]) for (const c of ALIGN[version]) {
+    // Only the three combinations that would collide with a finder are
+    // skipped. Testing fn[r][c] here is the tempting bug: centres that sit ON
+    // the timing line (every version from 7 up) are function modules already,
+    // and that test silently drops those whole patterns.
+    if ((r <= 8 && c <= 8) || (r <= 8 && c >= size - 9) || (r >= size - 9 && c <= 8)) continue;
+    for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) {
+      const on = Math.max(Math.abs(dr), Math.abs(dc)) !== 1;
+      set(r + dr, c + dc, on ? 1 : 0);
+    }
+  }
+
+  // reserve format areas (bits written per-mask later) and the dark module
+  for (let i = 0; i <= 8; i++) {
+    if (!fn[8][i]) set(8, i, 0);
+    if (!fn[i][8]) set(i, 8, 0);
+  }
+  for (let i = 0; i < 8; i++) {
+    if (!fn[8][size - 1 - i]) set(8, size - 1 - i, 0);
+    if (!fn[size - 1 - i][8]) set(size - 1 - i, 8, 0);
+  }
+  set(size - 8, 8, 1);                            // the dark module
+
+  if (version >= 7) {                             // version information
+    const v = versionInfo(version);
+    for (let i = 0; i < 18; i++) {
+      const bit = (v >> i) & 1;
+      set(Math.floor(i / 3), size - 11 + (i % 3), bit);
+      set(size - 11 + (i % 3), Math.floor(i / 3), bit);
+    }
+  }
+  return { m, fn, size };
+}
+
+function placeData(m, fn, size, codewords, remainder) {
+  const bits = [];
+  for (const b of codewords) for (let i = 7; i >= 0; i--) bits.push((b >> i) & 1);
+  for (let i = 0; i < remainder; i++) bits.push(0);
+  let idx = 0, up = true;
+  for (let col = size - 1; col > 0; col -= 2) {
+    if (col === 6) col--;                          // the timing column is skipped whole
+    for (let i = 0; i < size; i++) {
+      const row = up ? size - 1 - i : i;
+      for (const c of [col, col - 1]) {
+        if (fn[row][c]) continue;
+        m[row][c] = idx < bits.length ? bits[idx++] : 0;
+      }
+    }
+    up = !up;
+  }
+}
+
+const MASKS = [
+  (r, c) => (r + c) % 2 === 0,
+  (r) => r % 2 === 0,
+  (_, c) => c % 3 === 0,
+  (r, c) => (r + c) % 3 === 0,
+  (r, c) => (Math.floor(r / 2) + Math.floor(c / 3)) % 2 === 0,
+  (r, c) => ((r * c) % 2) + ((r * c) % 3) === 0,
+  (r, c) => (((r * c) % 2) + ((r * c) % 3)) % 2 === 0,
+  (r, c) => (((r + c) % 2) + ((r * c) % 3)) % 2 === 0,
+];
+
+/** BCH(15,5) format information, already XORed with the standard's mask. */
+function formatInfo(level, mask) {
+  const data = (LEVEL_BITS[level] << 3) | mask;
+  let rem = data;
+  for (let i = 0; i < 10; i++) rem = (rem << 1) ^ ((rem >> 9) & 1 ? 0x537 : 0);
+  return ((data << 10) | (rem & 0x3FF)) ^ 0x5412;
+}
+
+/** BCH(18,6) version information, versions 7–40. */
+function versionInfo(version) {
+  let rem = version;
+  for (let i = 0; i < 12; i++) rem = (rem << 1) ^ ((rem >> 11) & 1 ? 0x1F25 : 0);
+  return (version << 12) | (rem & 0xFFF);
+}
+
+function placeFormat(m, size, level, mask) {
+  // Both copies run MSB first: bit 14 lands at (8,0) and at (size-1,8). The
+  // tempting LSB-first loop produces a symbol no decoder on earth will read,
+  // while looking exactly as plausible in a screenshot.
+  const f = formatInfo(level, mask);
+  const A = [[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[8,7],[8,8],
+             [7,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8]];
+  const B = [[size-1,8],[size-2,8],[size-3,8],[size-4,8],[size-5,8],[size-6,8],[size-7,8],
+             [8,size-8],[8,size-7],[8,size-6],[8,size-5],[8,size-4],[8,size-3],[8,size-2],[8,size-1]];
+  A.forEach(([r, c], i) => { m[r][c] = (f >> (14 - i)) & 1; });
+  B.forEach(([r, c], i) => { m[r][c] = (f >> (14 - i)) & 1; });
+}
+
+/* The four penalty rules, exactly as the standard weights them. */
+function penaltyOf(m, size) {
+  let score = 0;
+  for (let pass = 0; pass < 2; pass++) {         // rows, then columns
+    for (let i = 0; i < size; i++) {
+      let run = 1;
+      for (let j = 1; j < size; j++) {
+        const a = pass ? m[j][i] : m[i][j], b = pass ? m[j - 1][i] : m[i][j - 1];
+        if (a === b) { run++; if (j === size - 1 && run >= 5) score += run - 2; }
+        else { if (run >= 5) score += run - 2; run = 1; }
+      }
+    }
+  }
+  for (let r = 0; r < size - 1; r++) for (let c = 0; c < size - 1; c++) {
+    if (m[r][c] === m[r][c + 1] && m[r][c] === m[r + 1][c] && m[r][c] === m[r + 1][c + 1]) score += 3;
+  }
+  const P = [1,0,1,1,1,0,1], Z = [0,0,0,0];
+  const lineHits = (get) => {
+    for (let i = 0; i < size; i++) {
+      for (let j = 0; j + 11 <= size; j++) {
+        const w = []; for (let k = 0; k < 11; k++) w.push(get(i, j + k));
+        const eq = (a, b) => a.every((x, ix) => x === b[ix]);
+        if (eq(w.slice(0, 4), Z) && eq(w.slice(4), P)) score += 40;
+        else if (eq(w.slice(0, 7), P) && eq(w.slice(7), Z)) score += 40;
+      }
+    }
+  };
+  lineHits((i, j) => m[i][j]);
+  lineHits((i, j) => m[j][i]);
+  let dark = 0;
+  for (const row of m) for (const v of row) dark += v;
+  score += 10 * Math.floor(Math.abs((dark * 100) / (size * size) - 50) / 5);
+  return score;
+}
+
+const REMAINDER = [null,0,7,7,7,7,7,0,0,0,0,0,0,0,3,3,3,3,3,3,3,4,4,4,4,4,4,4,3,3,3,3,3,3,3,0,0,0,0,0,0];
+
+/** The whole pipeline. opts: {level='M', version=auto, mask=auto}. */
+function encode(text, opts = {}) {
+  const level = opts.level || 'M';
+  let version = opts.version, mode;
+  if (version) {
+    mode = modeFor(text);
+    if (4 + cciBits(version, mode) + payloadBits(text, mode) > 8 * dataCodewords(version, level)) {
+      throw new Error('too long for forced version');
+    }
+  } else {
+    const pick = chooseVersion(text, level);
+    if (!pick) return null;
+    version = pick.version; mode = pick.mode;
+  }
+  const data = encodeData(text, version, level);
+  const codewords = buildCodewords(data, version, level);
+  const { m, fn, size } = baseMatrix(version);
+  placeData(m, fn, size, codewords, REMAINDER[version]);
+
+  let best = null;
+  const tryMasks = opts.mask != null ? [opts.mask] : [0,1,2,3,4,5,6,7];
+  for (const mask of tryMasks) {
+    const cand = m.map((row) => row.slice());
+    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) {
+      if (!fn[r][c] && MASKS[mask](r, c)) cand[r][c] ^= 1;
+    }
+    placeFormat(cand, size, level, mask);
+    const p = penaltyOf(cand, size);
+    if (!best || p < best.penalty) best = { matrix: cand, mask, penalty: p };
+  }
+  const used = (() => {
+    const mode2 = modeFor(text);
+    return Math.ceil((4 + cciBits(version, mode2) + payloadBits(text, mode2)) / 8);
+  })();
+  return { matrix: best.matrix, size, version, level, mask: best.mask, mode,
+           dataBytesUsed: used, dataBytesMax: dataCodewords(version, level) };
+}
+
+/* ---- payloads ----------------------------------------------------------- */
+
+const wifiEscape = (s) => s.replace(/([\\;,:"])/g, '\\$1');
+function payloadWifi({ ssid, pass, sec, hidden }) {
+  let s = 'WIFI:T:' + (sec === 'nopass' ? 'nopass' : sec) + ';S:' + wifiEscape(ssid) + ';';
+  if (sec !== 'nopass') s += 'P:' + wifiEscape(pass) + ';';
+  if (hidden) s += 'H:true;';
+  return s + ';';
+}
+
+const vEscape = (s) => s.replace(/\\/g, '\\\\').replace(/([,;])/g, '\\$1').replace(/\n/g, '\\n');
+function payloadVcard(f) {
+  const lines = ['BEGIN:VCARD', 'VERSION:3.0'];
+  if (f.first || f.last) {
+    lines.push('N:' + vEscape(f.last || '') + ';' + vEscape(f.first || '') + ';;;');
+    lines.push('FN:' + vEscape([f.first, f.last].filter(Boolean).join(' ')));
+  }
+  if (f.org) lines.push('ORG:' + vEscape(f.org));
+  if (f.title) lines.push('TITLE:' + vEscape(f.title));
+  if (f.phone) lines.push('TEL;TYPE=CELL:' + vEscape(f.phone));
+  if (f.email) lines.push('EMAIL:' + vEscape(f.email));
+  if (f.url) lines.push('URL:' + vEscape(f.url));
+  lines.push('END:VCARD');
+  return lines.join('\r\n');
+}
+
+/* ---- rendering ----------------------------------------------------------- */
+
+const QUIET = 4;
+
+function toSvg(res, fg, bg) {
+  const n = res.size + 2 * QUIET;
+  let d = '';
+  for (let r = 0; r < res.size; r++) {
+    let c = 0;
+    while (c < res.size) {
+      if (res.matrix[r][c]) {
+        let len = 1;
+        while (c + len < res.size && res.matrix[r][c + len]) len++;
+        d += `M${c + QUIET} ${r + QUIET}h${len}v1h-${len}z`;
+        c += len;
+      } else c++;
+    }
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges">` +
+         `<rect width="${n}" height="${n}" fill="${bg}"/><path d="${d}" fill="${fg}"/></svg>`;
+}
+
+function toCanvas(res, px, fg, bg) {
+  const n = res.size + 2 * QUIET;
+  const scale = Math.max(1, Math.round(px / n));
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = n * scale;
+  const g = canvas.getContext('2d');
+  g.fillStyle = bg; g.fillRect(0, 0, canvas.width, canvas.height);
+  g.fillStyle = fg;
+  for (let r = 0; r < res.size; r++) for (let c = 0; c < res.size; c++) {
+    if (res.matrix[r][c]) g.fillRect((c + QUIET) * scale, (r + QUIET) * scale, scale, scale);
+  }
+  return canvas;
+}
+
+/* ---- page wiring --------------------------------------------------------- */
+
+const $ = (id) => document.getElementById(id);
+let tab = 'text';
+let current = null;
+
+function currentText() {
+  if (tab === 'wifi') {
+    const ssid = $('w-ssid').value;
+    if (!ssid) return null;
+    return payloadWifi({ ssid, pass: $('w-pass').value, sec: $('w-sec').value, hidden: $('w-hidden').checked });
+  }
+  if (tab === 'card') {
+    const f = { first: $('c-first').value.trim(), last: $('c-last').value.trim(),
+      phone: $('c-phone').value.trim(), email: $('c-email').value.trim(),
+      org: $('c-org').value.trim(), title: $('c-title').value.trim(), url: $('c-url').value.trim() };
+    if (!Object.values(f).some(Boolean)) return null;
+    return payloadVcard(f);
+  }
+  return $('in-text').value;
+}
+
+function luminance(hex) {
+  const v = [1, 3, 5].map((i) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+}
+
+function colorCheck() {
+  const lf = luminance($('fg').value), lb = luminance($('bg').value);
+  const ratio = (Math.max(lf, lb) + 0.05) / (Math.min(lf, lb) + 0.05);
+  const el = $('colorhint');
+  if (lf > lb) { el.textContent = 'Light ink on dark paper reads as an inverted code — many scanners refuse those. Swap the colours.'; el.className = 'hint warn'; }
+  else if (ratio < 3) { el.textContent = 'Low contrast — some cameras will struggle. Darker ink or lighter paper helps.'; el.className = 'hint warn'; }
+  else { el.textContent = ''; el.className = 'hint'; }
+}
+
+function regenerate() {
+  const text = currentText();
+  const box = $('svgbox'), cap = $('caption');
+  colorCheck();
+  if (!text) {
+    box.innerHTML = ''; current = null;
+    cap.textContent = tab === 'wifi' ? 'Enter the network name.' : tab === 'card' ? 'Fill in at least one field.' : 'Type something above.';
+    return;
+  }
+  let res;
+  try { res = encode(text, { level: $('ec').value }); } catch { res = null; }
+  if (!res) {
+    box.innerHTML = ''; current = null;
+    const max = { L: 2953, M: 2331, Q: 1663, H: 1273 }[$('ec').value];
+    cap.textContent = 'Too long — at this damage tolerance a QR code holds at most ' + max.toLocaleString('en-US') + ' bytes.';
+    return;
+  }
+  current = res;
+  box.innerHTML = toSvg(res, $('fg').value, $('bg').value);
+  cap.innerHTML = '<b>Version ' + res.version + '</b> · ' + res.size + '×' + res.size +
+    ' modules · tolerance <b>' + res.level + '</b> · mask ' + res.mask +
+    ' · ' + res.dataBytesUsed + ' of ' + res.dataBytesMax + ' bytes used';
+}
+
+function download(name, blob) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+$('dl-svg').addEventListener('click', () => {
+  if (!current) return;
+  download('qr.svg', new Blob([toSvg(current, $('fg').value, $('bg').value)], { type: 'image/svg+xml' }));
+});
+$('dl-png').addEventListener('click', () => {
+  if (!current) return;
+  toCanvas(current, Number($('pngsize').value), $('fg').value, $('bg').value)
+    .toBlob((b) => download('qr.png', b), 'image/png');
+});
+
+function setTab(t) {
+  tab = t;
+  for (const k of ['text', 'wifi', 'card']) {
+    $('tab-' + k).setAttribute('aria-pressed', String(k === t));
+    $('panel-' + k).hidden = k !== t;
+  }
+  regenerate();
+}
+$('tab-text').addEventListener('click', () => setTab('text'));
+$('tab-wifi').addEventListener('click', () => setTab('wifi'));
+$('tab-card').addEventListener('click', () => setTab('card'));
+
+for (const id of ['in-text','w-ssid','w-pass','w-sec','w-hidden','c-first','c-last','c-phone','c-email','c-org','c-title','c-url','ec','fg','bg'])
+  $(id).addEventListener('input', regenerate);
+
+// Exposed deliberately, so you can inspect or drive the encoder from the
+// console — try misc.encode('HELLO', {level: 'Q'}).
+window.misc = { encode, rsEncode, rsGenerator, gfMul, penaltyOf, formatInfo, versionInfo,
+  modeFor, chooseVersion, payloadWifi, payloadVcard, toSvg, toCanvas, ALIGN, ECT, ALNUM,
+  dataCodewords, totalCodewords, baseMatrix, REMAINDER };
+
+regenerate();
+</script>
+</body>
+</html>
