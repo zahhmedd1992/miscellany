@@ -22,3 +22,8 @@ dist/
 
 # QA harness output: screenshots, downloaded artefacts, temp blobs
 qa/out/
+
+# Session history filed by the SessionEnd hook: transcripts, digests, file
+# snapshots. Never publish — it carries the OS username, absolute home paths,
+# private project names and prompts quoted verbatim. (proj-245, 08.19.26)
+_meta/
