@@ -89,10 +89,31 @@ export class Registry {
     return ids.map((id) => this.cmds.get(id)).filter(Boolean);
   }
 
-  /** Keyboard map: 'Mod+B' -> command id. */
-  keymap() {
+  /**
+   * Keyboard map: 'Mod+B' -> command id, for the commands currently in scope.
+   *
+   * The filter is not a nicety. Three apps declare Mod+B — a spreadsheet
+   * bolds a cell, a deck bolds a shape, a document bolds a word — and they
+   * are all correct. Without a scope the last app registered silently won the
+   * key for the whole product, so Ctrl+B in the spreadsheet ran the deck's
+   * command against a deck that was not on screen. Nothing failed; nothing
+   * happened either, which is worse.
+   *
+   * @param inScope (id) => boolean, or omitted for every command
+   */
+  keymap(inScope) {
     const m = new Map();
-    for (const c of this.cmds.values()) if (c.key) m.set(normKey(c.key), c.id);
+    const clash = [];
+    for (const c of this.cmds.values()) {
+      if (!c.key) continue;
+      if (inScope && !inScope(c.id)) continue;
+      const k = normKey(c.key);
+      if (m.has(k)) clash.push(`${c.key}: ${m.get(k)} and ${c.id}`);
+      m.set(k, c.id);
+    }
+    // Two commands that are BOTH in scope claiming one key is an authoring
+    // mistake, not a design tension. Say so rather than pick one.
+    if (clash.length) console.warn('[grain] shortcut collision — ' + clash.join('; '));
     return m;
   }
 

@@ -8,6 +8,9 @@ Thumbs.db
 # build_corpus.py re-fetches and re-verifies every hash.
 corpus/files/
 corpus/pdf/files/
+corpus/docx/files/
+corpus/docx/_probe/
+corpus/__pycache__/
 
 # scratch output
 /tmp/

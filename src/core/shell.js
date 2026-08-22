@@ -61,6 +61,7 @@ export class Shell {
     this.granted = new Set([...BASE_CAPABILITIES, ...(opts.grant || [])]);
 
     this.apps = new Map();       // id -> descriptor
+    this.owner = new Map();      // command id -> the app that defined it
     this.surfaces = new Map();   // id -> live surface
     this.layout = [];            // ids currently on screen, left to right
     this.focus = null;           // id of the surface that gets commands
@@ -192,12 +193,33 @@ export class Shell {
 
   _snapshot() { if (!this._suspend) this.doc.beginJournal(); }
 
-  _commit() {
+  /**
+   * File the journal as an undo step.
+   *
+   * @param coalesce  an optional key. Consecutive commits carrying the SAME
+   *   key, close together in time, are merged into one step.
+   *
+   * Typing is why this exists. Every keystroke is a document write, so
+   * without it Ctrl+Z in Doc undoes one letter, and undoing a sentence means
+   * pressing it forty times. The key is the paragraph being typed into, so
+   * pressing Enter, clicking elsewhere, or running any other command starts a
+   * fresh step - which is exactly where a person expects the undo to stop.
+   */
+  _commit(coalesce) {
     if (this._suspend) return;
     const j = this.doc.endJournal();
     if (!j.length) return;
-    this.undoStack.push(j);
-    if (this.undoStack.length > 500) this.undoStack.shift();
+    const now = Date.now();
+    const prev = this.undoStack[this.undoStack.length - 1];
+    if (coalesce && prev && prev._key === coalesce && now - prev._at < 1500) {
+      prev.push(...j);
+      prev._at = now;
+    } else {
+      j._key = coalesce || null;
+      j._at = now;
+      this.undoStack.push(j);
+      if (this.undoStack.length > 500) this.undoStack.shift();
+    }
     this.redoStack.length = 0;
   }
 
@@ -233,7 +255,19 @@ export class Shell {
    * @param a.commands  (shell) => void   — calls shell.define(...)
    * @param a.mount     (host) => surface — { draw, focus, handleKey, status }
    */
-  app(a) { this.apps.set(a.id, a); if (a.commands) a.commands(this); return this; }
+  app(a) {
+    this.apps.set(a.id, a);
+    if (a.commands) {
+      /* Which commands belong to which app is DERIVED from who defined them,
+       * not declared. An app cannot forget to label its commands, and a
+       * command cannot claim to belong to an app that did not define it. */
+      const before = new Set(this.reg.cmds.keys());
+      a.commands(this);
+      for (const id of this.reg.cmds.keys()) if (!before.has(id)) this.owner.set(id, a.id);
+    }
+    this.rebindKeys();
+    return this;
+  }
 
   /* ---- chrome ----------------------------------------------------------
    * The shell builds its own DOM. An app's entry point is a bare page and a
@@ -342,15 +376,19 @@ export class Shell {
       note: (html) => { hd.querySelector('span').insertAdjacentHTML('afterend', html); },
       markDirty: () => this.markDirty(),
       refresh: () => this.refresh(),
-      /** Batch several document writes into ONE undo step. */
-      batch: (fn) => {
+      /**
+       * Batch several document writes into ONE undo step.
+       * @param coalesce  merge with the previous step if it carried the same
+       *                  key and happened moments ago. See Shell._commit.
+       */
+      batch: (fn, coalesce) => {
         const outer = this._depth === 0;
         if (outer) this._snapshot();
         this._depth++;
         try { return fn(); }
         finally {
           this._depth--;
-          if (outer) { this._commit(); this.markDirty(); this.refresh(); }
+          if (outer) { this._commit(coalesce); this.markDirty(); this.refresh(); }
         }
       },
     };
@@ -359,6 +397,8 @@ export class Shell {
   setFocus(id) {
     if (!this.surfaces.has(id)) return;
     this.focus = id;
+    // Shortcuts follow the focused pane, exactly as the toolbar does.
+    this.rebindKeys();
     [...this.stage.children].forEach((p, i) =>
       p.classList.toggle('on', this.layout[i] === id));
     this.renderToolbar();
@@ -375,10 +415,15 @@ export class Shell {
       b.onclick = () => this.setLayout([id]);
       this.tabs.appendChild(b);
     }
-    if (this.apps.size === 2) {
-      const both = [...this.apps.keys()];
-      const b = el('button', 'gr-tab' + (this.layout.length > 1 ? ' on' : ''), 'Both');
-      b.onclick = () => this.setLayout(both);
+    if (this.apps.size >= 2) {
+      /* "Both" was right while there were exactly two apps. With three it
+       * named a thing that no longer exists, and the side-by-side view - the
+       * one arrangement that demonstrates what the platform IS - became
+       * unreachable from the tab bar. */
+      const all = [...this.apps.keys()];
+      const b = el('button', 'gr-tab' + (this.layout.length > 1 ? ' on' : ''),
+                   this.apps.size === 2 ? 'Both' : 'All');
+      b.onclick = () => this.setLayout(all);
       this.tabs.appendChild(b);
     }
   }
@@ -529,8 +574,20 @@ export class Shell {
     });
   }
 
-  /** Re-read the registry after an app defines commands late. */
-  rebindKeys() { this.keymap = this.reg.keymap(); }
+  /**
+   * Rebuild the keyboard map for the app that has focus.
+   *
+   * In scope: everything the SHELL defines (undo, save, the palette — they
+   * mean the same thing in every app), plus everything the focused app
+   * defined. Another app's Ctrl+B is not in scope, because pressing it would
+   * act on a pane you are not looking at.
+   */
+  rebindKeys() {
+    this.keymap = this.reg.keymap((id) => {
+      const o = this.owner.get(id);
+      return !o || o === this.focus;
+    });
+  }
 
   /* ---- persistence: localStorage, no account, nothing leaves the machine -- */
 

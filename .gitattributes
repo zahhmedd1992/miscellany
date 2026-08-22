@@ -9,5 +9,7 @@
 *.jpg binary
 *.ico binary
 *.xlsx binary
+*.docx binary
+*.pdf binary
 *.zip binary
 *.woff2 binary
