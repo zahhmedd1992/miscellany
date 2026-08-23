@@ -161,6 +161,17 @@ function segments(block, resolve) {
     at += r.n;
   }
   if (!out.length) out.push({ text: '', style: runStyle(props, {}), src: 0, len: 0 });
+
+  /* Mark where a line may NOT end. A piece that begins in the middle of a
+   * word — because the run before it stopped mid-word, which Word does
+   * constantly — is welded to the piece before it. Without this a run
+   * boundary is a break opportunity, and ordinary words come apart. */
+  for (let i = 1; i < out.length; i++) {
+    const prev = out[i - 1];
+    if (prev.hardBreak || prev.shy || out[i].hardBreak || out[i].shy) continue;
+    const endsOpen = /[ \t]$/.test(prev.text) || isBreakAfter(prev.text.slice(-1));
+    if (!endsOpen && prev.text !== '' && out[i].text !== '') out[i].weld = true;
+  }
   return { props, segs: out, runs };
 }
 
@@ -500,7 +511,32 @@ function breakLines(segs, availW, props, listMark) {
     x = 0;
   };
 
-  for (const seg of segs) {
+  /* The width of the unit starting at `i`: this piece plus every welded piece
+   * after it. A line ends between units, never inside one. */
+  const unitWidth = (i) => {
+    let w = 0;
+    for (let j = i; j < segs.length; j++) {
+      if (j > i && !segs[j].weld) break;
+      if (segs[j].tabRun || segs[j].hardBreak || segs[j].shy) break;
+      w += segWidth(segs[j]);
+    }
+    return w;
+  };
+  const unitTrimmed = (i) => {
+    let w = 0, last = i;
+    for (let j = i; j < segs.length; j++) {
+      if (j > i && !segs[j].weld) break;
+      if (segs[j].tabRun || segs[j].hardBreak || segs[j].shy) break;
+      last = j;
+    }
+    for (let j = i; j <= last; j++) {
+      w += j === last ? segWidth(segs[j], trimEnd(segs[j].text)) : segWidth(segs[j]);
+    }
+    return w;
+  };
+
+  for (let si = 0; si < segs.length; si++) {
+    const seg = segs[si];
     /* A soft hyphen occupies a caret position and no width. If the line ends
      * here it becomes a visible hyphen, which is the whole point of it. */
     if (seg.shy) {
@@ -528,26 +564,42 @@ function breakLines(segs, availW, props, listMark) {
       continue;
     }
     let w = segWidth(seg);
-    const wTrim = segWidth(seg, trimEnd(seg.text));
-    if (x + wTrim > availW && line.chunks.some((c) => c.text.trim() !== '')) {
-      push();
-      w = segWidth(seg);
-    }
-    // A single piece wider than the column: hard-break it character by
-    // character. A URL in a narrow cell has to go somewhere.
-    if (w > availW && !seg.atomic) {
-      let rest = seg.text, at = seg.src;
-      while (rest.length) {
-        let take = rest.length;
-        while (take > 1 && x + segWidth(seg, rest.slice(0, take)) > availW) take--;
-        const part = rest.slice(0, take);
-        const pw = segWidth(seg, part);
-        line.chunks.push({ ...seg, text: part, src: at, len: part.length, x, w: pw });
-        x += pw;
-        rest = rest.slice(take);
-        at += take;
-        if (rest.length) push();
+    /* Only a piece that STARTS a unit may move to the next line, and it is
+     * the whole unit's width that decides. */
+    if (!seg.weld) {
+      const wTrim = unitTrimmed(si);
+      if (x + wTrim > availW && line.chunks.some((c) => c.text.trim() !== '')) {
+        push();
+        w = segWidth(seg);
       }
+    }
+    /* A unit wider than the whole column has to go somewhere, so it is broken
+     * character by character — a URL in a narrow cell. Judged on the UNIT,
+     * not the piece, or a word split across two runs looks over-long. */
+    if (!seg.weld && unitWidth(si) > availW && !seg.atomic) {
+      /* The WHOLE unit is consumed here, welded continuations included. Doing
+       * only the first piece left the rest to be appended without a wrap —
+       * they are welded, so they skip both tests above — and the line ran off
+       * the column by however long the continuation was. */
+      let j = si;
+      do {
+        const s2 = segs[j];
+        let rest = s2.text, at = s2.src;
+        while (rest.length) {
+          let take = rest.length;
+          while (take > 1 && x + segWidth(s2, rest.slice(0, take)) > availW) take--;
+          const part = rest.slice(0, take);
+          const pw = segWidth(s2, part);
+          line.chunks.push({ ...s2, text: part, src: at, len: part.length, x, w: pw });
+          x += pw;
+          rest = rest.slice(take);
+          at += take;
+          if (rest.length) push();
+        }
+        j++;
+      } while (j < segs.length && segs[j].weld && !segs[j].atomic &&
+               !segs[j].hardBreak && !segs[j].shy);
+      si = j - 1;
       continue;
     }
     line.chunks.push({ ...seg, x, w });
@@ -791,7 +843,7 @@ function placeTable(ctx, table, bi) {
       // A cell is the whole engine run again at the cell's width. That is why
       // layout() takes blocks and a box rather than being a method on a
       // document: a table cell is a small page.
-      cellLayouts.push(layoutInBox(cell.blocks || [], inner, ctx.opts));
+      cellLayouts.push(layoutInBox(cell.blocks || [], inner, ctx.opts, ctx.counters));
       rowH = Math.max(rowH, cellLayouts[ci].height + pad * 2);
     }
 
@@ -893,15 +945,22 @@ function cutAt(cl, from, avail) {
   return { height, restFrom, restAt };
 }
 
-/** Lay blocks out in a box of a given width, with no pagination. */
-function layoutInBox(blocks, width, opts) {
+/**
+ * Lay blocks out in a box of a given width, with no pagination.
+ *
+ * `counters` is the DOCUMENT's list counters, shared rather than copied: a
+ * numbered list running down the rows of a table is one list, and giving
+ * each cell its own counters numbered every row "1.".
+ */
+function layoutInBox(blocks, width, opts, counters) {
   const fake = {
     size: 'letter', landscape: false,
     margin: { top: 0, left: 0, right: 0, bottom: 0 },
   };
   const box = { w: width, h: 1e6 };
   const content = { x: 0, y: 0, w: width, h: 1e6 };
-  const ctx = { pg: fake, box, content, opts, pages: [], counters: [0, 0, 0, 0, 0], warnings: [] };
+  const ctx = { pg: fake, box, content, opts, pages: [],
+                counters: counters || [0, 0, 0, 0, 0], warnings: [] };
   newPage(ctx);
   blocks.forEach((b, i) => { b._index = b._index ?? i; });
   blocks.forEach((b, i) => {

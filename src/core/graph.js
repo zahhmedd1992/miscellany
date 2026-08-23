@@ -152,6 +152,19 @@ export class Graph {
     // three elements marks a meta entry; set() pushes two
     if (this._journal) this._journal.push([id, n.raw, n.meta === undefined ? null : n.meta]);
     n.meta = meta;
+    /* Meta does not participate in RECALCULATION - it holds formatting and
+     * geometry, not values - but it is still a change to the document, and a
+     * view that is not told about it cannot be correct.
+     *
+     * Sheet and Deck never noticed the omission because every one of their
+     * commands ends in a full repaint from the shell. Doc caches its line
+     * breaking per paragraph, so a paragraph whose FORMATTING changed with
+     * nobody informed kept its old lines: a bulleted item rendered with no
+     * bullet and no indent, on the live site, with the correct data sitting
+     * in the node. The listener is where "the document changed" is decided,
+     * so this is where it has to be said. */
+    this._epoch++;
+    this._emit(new Set([id]));
     return n;
   }
 

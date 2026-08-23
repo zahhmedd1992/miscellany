@@ -211,6 +211,76 @@ t('while a real one still is', unprintable('Ж').length, 1);
     unprintableIn(layout([para('a\tb')], DEFAULT_PAGE)).length, 0);
 }
 
+/* ---- 9. a run boundary is not a place to break a line -------------------- */
+
+{
+  /* Word splits runs wherever it likes — a spell-check state, an rsid stamp,
+   * a tracked change — so a single word arrives as several runs with
+   * identical formatting. Breaking per run made every one of those a legal
+   * wrap: a US government template's title rendered as
+   * "VA Facility I / nstitutional Biosafety Committee", live. */
+  const word = 'Institutional';
+  const filler = 'Example: Name of VA Facility ';
+  const block = {
+    kind: 'para', id: 'p', text: filler + word + ' Biosafety Committee',
+    // "I" and "nstitutional" in two runs, exactly as Word writes it
+    runs: [{ n: filler.length + 1 }, { n: word.length - 1 }, { n: 20 }],
+    p: { style: 'title', align: 'center' },
+  };
+  const out = layout([block], DEFAULT_PAGE);
+  const lines = out.pages[0].lines.map(
+    (l) => l.chunks.map((c) => c.text).join('').replace(/\s+$/, ''));
+  ok('a word split across runs is not split across lines',
+     !lines.some((l) => /I$/.test(l)) && lines.some((l) => l.includes(word)),
+     JSON.stringify(lines));
+
+  // ...but a genuinely over-long word still has to break somewhere
+  const long = { kind: 'para', id: 'q', text: 'x'.repeat(400), runs: [{ n: 200 }, { n: 200 }], p: {} };
+  const out2 = layout([long], DEFAULT_PAGE);
+  ok('an over-long word still breaks', out2.pages[0].lines.length > 1,
+     `${out2.pages[0].lines.length} lines`);
+  const widest = Math.max(...out2.pages[0].lines.map((l) => l.width || 0));
+  ok('and every piece of it fits', widest <= out2.content.w + 0.5, widest.toFixed(1));
+}
+
+{
+  // a numbered list running down the rows of a table is ONE list
+  const cell = (s2, p2) => ({ blocks: [{ kind: 'para', text: s2, runs: [{ n: s2.length }], p: p2 }] });
+  const rows = [0, 1, 2].map((i) =>
+    [cell('Row ' + i, {}), cell('item', { list: 'number' })]);
+  const out = layout([{ kind: 'table', rows, cols: [120, 300] }], DEFAULT_PAGE);
+  t('list numbering continues down a table',
+    out.pages[0].items.filter((i) => i.marker).map((i) => i.s).join(' '), '1. 2. 3.');
+}
+
+/* ---- 8. a formatting change is a change ---------------------------------- */
+
+{
+  /* Graph.setMeta used to alter the document and tell nobody. Sheet and Deck
+   * never noticed, because every one of their commands ends in a full repaint
+   * from the shell — but that is luck, not design, and the first thing to
+   * depend on the notification (Doc's per-paragraph line cache) rendered a
+   * bulleted item with no bullet and no indent, live, with the right data
+   * sitting in the node.
+   *
+   * Tested here rather than in core.test.mjs because it is a regression, and
+   * regressions are kept where the story is. */
+  const { createDocument } = await import('../src/core/document.js');
+  const doc = createDocument();
+  const seen = [];
+  doc.set('main!A1', 'x');
+  doc.onChange((ids) => seen.push([...ids].join(',')));
+  doc.setMeta('main!A1', { bold: true });
+  t('setMeta notifies the views', seen.join('|'), 'main!A1');
+
+  // and a listener still may not write from inside one
+  let threw = false;
+  const off = doc.onChange(() => { try { doc.set('main!A2', 'y'); } catch { threw = true; } });
+  doc.setMeta('main!A1', { bold: false });
+  off();
+  t('and the read-only rule for listeners still holds', threw, true);
+}
+
 /* ---- report -------------------------------------------------------------- */
 
 console.log(`\n  doc red-team regressions: ${pass} passed, ${fail} failed`);

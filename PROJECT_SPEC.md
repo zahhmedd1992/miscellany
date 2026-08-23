@@ -177,8 +177,27 @@ of ambition. **Pace assumption: ~4 focused sessions/week.**
 
 ## Explicitly out of scope (year one)
 
-- **Word replacement** — rich text layout is deceptively enormous, and Doc is the least
-  differentiated (everyone tolerates a free writing tool already).
+- ~~**Word replacement**~~ — **REVERSED 2026-08-22. Doc shipped.** The reasoning was
+  half right and half wrong, and it is worth separating them, because the wrong half
+  is the kind of mistake that gets made again.
+
+  *Right:* rich text layout is enormous. It took a page-layout engine, a font-metrics
+  table, a caret and selection written from nothing, and a PDF writer.
+
+  *Wrong:* "least differentiated". That judged Doc as a word processor competing with
+  other word processors, where a free one is indeed tolerable and dull. On the node
+  graph it is not that. A paragraph is a node, so a sentence can hold a formula and
+  a report can read from the spreadsheet beside it — and that is a thing no word
+  processor does, free or paid. The differentiation was never in the writing surface.
+
+  What made it affordable was that the ground had been laid: the shell, the graph,
+  the formula engine, the chart renderer, the zip and OOXML layers and the PDF reader
+  all already existed. Doc reuses every one of them and adds a layout engine. That is
+  the "app N costs ~20% of app 1" claim, tested rather than asserted.
+
+  The genuinely new invariant is worth recording: layout NEVER measures anything on a
+  canvas. One width table lays out the screen and is written into the PDF as /Widths,
+  so the page breaks where you were looking at it breaking. See core/text/metrics.js.
 - **Cloud / accounts / server** — not for cost; accounts create lock-in, liability, and a
   business model we don't want. Collab is peer-to-peer.
 - **Native mobile** — web version works on a phone.

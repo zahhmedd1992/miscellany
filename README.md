@@ -1,12 +1,12 @@
 # Miscellany
 
-Free, modular software that composes. A spreadsheet and a slide deck that share
-one document — so a figure on a slide **is** the number in the sheet, not a copy
-of it.
+Free, modular software that composes. A spreadsheet, a slide deck and a word
+processor that share one document — so a figure on a slide, or in a sentence,
+**is** the number in the sheet, not a copy of it.
 
 **Live: <https://miscellany.io>** — [Sheet](https://miscellany.io/app/) ·
-[Deck](https://miscellany.io/app/deck) ·
-[both, one document](https://miscellany.io/app/compose)
+[Deck](https://miscellany.io/app/deck) · [Doc](https://miscellany.io/app/doc) ·
+[all three, one document](https://miscellany.io/app/compose)
 
 Zero dependencies, no build step, no accounts, no telemetry. The pages make no
 external requests at all.
@@ -23,18 +23,31 @@ will not work. There is nothing to install.
 ## Test it
 
 ```sh
-npm test                        # 679 assertions across nine suites
+npm test                        # 1,588 assertions across fourteen suites
 
 python corpus/build_corpus.py   # fetch the 49-workbook corpus (SHA256-locked)
 node test/agreement.mjs         # grade the formula engine against Excel's answers
 ```
 
-The corpus is **not** redistributed here. `corpus/corpus.json` pins every file
-by SHA256 and `build_corpus.py` fetches them from their original public sources.
+Neither corpus is redistributed here. `corpus/corpus.json` (49 workbooks) and
+`corpus/docx.json` (40 Word documents) pin every file by SHA256, and the build
+scripts fetch them from their original public sources. Both were locked and
+published **before** the reader that they grade was written, so the exam cannot
+be chosen at grading time.
+
+```sh
+python corpus/build_docx_corpus.py    # fetch and verify the 40-document corpus
+node test/docx.read.test.mjs          # 686 assertions vs. a separate implementation
+```
 
 Browser suites drive the real interface (needs `patchright`):
-`qa/sheet_rehost.py`, `qa/deck_standalone.py`, `qa/live_update.py`,
-`qa/one_document.py`.
+
+```sh
+npm run qa                            # Doc: smoke, red-team regressions, screen-vs-print
+python qa/live_doc_qa.py              # the live site, including the download off disk
+python qa/live_docx_qa.py             # a real Word document, through the real buttons
+python qa/docx_foreign_check.py       # our .docx output, checked by Python's zipfile
+```
 
 ## Build it
 
@@ -60,8 +73,11 @@ src/core/          Grain — the substrate. Knows nothing about spreadsheets.
   shell.js           the window every app is hosted in
   docfile.js         the .grain document format
   ooxml/             .xlsx read and write, with preserve-unknown
+  text/              the layout engine and the font metrics the PDF also uses
+  pdf/               PDF read, page surgery, and writing one from nothing
 src/apps/sheet/    grid, editor, .xlsx open/save, styles, structural edits
 src/apps/deck/     slides, objects, charts
+src/apps/doc/      pages, caret and selection, .docx open/save, PDF export
 ```
 
 An app supplies three things: its commands, its toolbar sets, and a surface that
@@ -96,6 +112,16 @@ cache them, which is exactly why real workbooks make a good exam:
 errors. The five that remain are a published baseline, not a hidden allowlist;
 the gate fails the moment that count rises.
 
+**One computation, two renderers.** Doc's layout engine never measures anything
+on a canvas. Every width comes from `core/text/metrics.js`, and those same
+numbers are written into the PDF as the font's `/Widths` array — so the page
+breaks its lines exactly where the screen does, by construction rather than by
+testing. `core/pdf/canvas.js` is a 2D drawing context that emits PDF operators,
+so the PDF is not a second rendering of the document: it is the same drawing
+code pointed at another surface. `qa/doc_pdf_qa.py` proves it with two foreign
+implementations — pdfium rasterises the page and it is compared band by band
+against a screenshot, and MuPDF reads the text back.
+
 **Splice, never regenerate.** Regeneration loses attribute order, self-closing
 style, whitespace, entity choice, and everything unmodelled. Open
 `corpus/files/adv-pivot.xlsx`, change one cell, save: 55 parts in, **54 back
@@ -116,6 +142,28 @@ byte-identical**, one changed — the sheet you edited.
   context: it is a boundary, not a sandbox. Every app currently holds the same
   grants.
 - The HTTP/MCP API is generated, not served.
+
+Doc specifically:
+
+- Three font families (serif, sans, monospaced) in the four usual faces. They
+  are the fonts a PDF can name without embedding one, which is what makes an
+  exported file both small and free of anybody's licensed typeface.
+- Text outside WinAnsiEncoding — Greek, Cyrillic, CJK — has no glyph in those
+  fonts. Doc names the characters before it exports rather than writing a page
+  of question marks silently.
+- Reading `.docx`: paragraphs, runs, styles, numbering, tables, section setup.
+  Headers, footers, footnotes, comments, images, charts and embedded objects are
+  **kept and written back untouched**, and the status bar says so on open, but
+  they are not displayed or editable.
+- Writing `.docx`: text, character and paragraph formatting, inserted and
+  deleted paragraphs. Inserting a table or a chart is not written back yet.
+- A table imported from Word is scaled to fit the page rather than auto-fitted
+  the way Word does, so a very narrow column can wrap where Word would not.
+- Line breaking is greedy, not optimal. Optimal breaking reflows the bottom of a
+  paragraph when you edit the top of it, which in an editor reads as the text
+  jumping under your hands.
+- Placement is still linear in document length: a keystroke costs about 30ms at
+  58 pages (line breaking is cached per paragraph; pagination is not).
 
 ## Licence
 

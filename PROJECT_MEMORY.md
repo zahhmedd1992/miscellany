@@ -2,6 +2,11 @@
 
 ## Status
 
+**2026-08-22 — THREE APPS LIVE.** Sheet, Deck and Doc on one document, at
+miscellany.io. Nine tools on the front door. `npm test` = 1,588 assertions; the
+browser suites are `npm run qa` plus `qa/live_doc_qa.py` and `qa/live_docx_qa.py`.
+Latest session: the Doc entry below.
+
 **2026-08-02 — BUILDING. Plan v3 emailed. D1–D7 all resolved from Zach's own brief.**
 Working engine + grid at `src/`. Run: `cd src && python -m http.server 9195`.
 Tests: `node test/core.test.mjs` → **97/97 green**.
@@ -896,6 +901,150 @@ build and working from disk with zero network attempts. 153 platform tests
 still green; licence gate clean.
 
 Next per IDEA_QUEUE sequence: **PDF toolkit** (flagship), then amortization.
+
+---
+
+# 2026-08-22 — DOC: the third app, and the year-one deferral reversed
+
+**Live: <https://miscellany.io/app/doc>. Tally 8 → 9.** `npm test` 1,588 assertions.
+
+`PROJECT_SPEC.md` said Word replacement was out of scope for year one. That is
+now marked REVERSED in the spec itself, with the reasoning separated: "rich text
+layout is enormous" was right (it took a layout engine, a font-metrics table, a
+caret and selection written from nothing, and a PDF writer); "least
+differentiated" was wrong, because it judged Doc as a word processor competing
+with word processors. On the node graph a sentence can hold a formula.
+
+## The invariant that is the whole point
+
+**Layout never measures anything on a canvas.** `core/text/metrics.js` holds the
+advance widths of the base-14 fonts; layout breaks lines with them; and
+`core/pdf/make.js` writes those same numbers into the PDF as `/Widths`. The
+screen and the page cannot disagree, because there is one computation and two
+renderers.
+
+`core/pdf/canvas.js` is the second renderer: a CanvasRenderingContext2D subset
+that emits PDF operators. So the PDF is not a re-implementation of the screen —
+`drawPage()` is pointed at a different surface. Charts come out as vector art
+because `chartview.js` draws through the same context.
+
+Proved with two foreign implementations rather than asserted: `qa/doc_pdf_qa.py`
+rasterises with **pdfium** and compares the page to a screenshot band by band
+(14 lines, same heights, same left and right ink edges, worst 2px at 2x scale),
+and reads the text back with **MuPDF**.
+
+The metrics themselves are cross-checked between the AFM tables and the Windows
+TrueType `hmtx`: 2,616 (font, character) pairs, 2,579 agreeing. The 37 that
+differ are five rare glyphs where Microsoft redrew the character; the AFM wins,
+because that is the number a PDF reader uses.
+
+## What Doc adds to Grain
+
+- **Paragraph order is a fractional index** (`doc:body/pa0`, `a1`, `a1V`…).
+  Pressing Enter mid-document writes ONE node instead of renumbering everything
+  below it, and 5,000 appended keys stay four characters long. The obvious
+  `p1, p2, p3` would have rewritten hundreds of nodes per keystroke.
+- **A live field is a node with a formula in it**, occupying one character
+  (U+FFFC) of the paragraph and displaying however many the formula produced. It
+  is atomic to the caret, because "offset 4 of a computed value" is a position
+  that stops existing the moment the number changes.
+- **Tables and charts bind to ranges** the way Deck's charts do — same
+  `chartSpecFor`, same `drawChart`, no integration code anywhere.
+- **No contenteditable.** It is the browser's model of what a document is.
+
+## .docx, graded before it was written
+
+`corpus/docx.json`: 40 files, 20 real-world across 19 hosts, 20 adversarial,
+locked and published BEFORE the reader existed. Gathered by a headless agent
+whose report (`corpus/DOCX_CORPUS_REPORT.md`) is the most valuable artefact of
+the session — 16 measured traps. The three worth remembering:
+
+1. **The prefix trap is INVERTED from the xlsx side.** In SpreadsheetML a prefix
+   is the surprise. In WordprocessingML 37 of 40 files use `w:` and ALL TWENTY
+   real-world ones do — so a reader that hardcodes it passes a corpus of genuine
+   documents and is silently broken. The test proves the trap is live: a naive
+   `<w:p` scan finds 0 paragraphs in two files ours reads perfectly.
+2. **Two OOXML namespaces**, transitional and strict (`purl.oclc.org`). Hardcode
+   one and a Strict document opens with zero paragraphs and no error.
+3. **No recursion anywhere** — one corpus file nests tables 4,999 deep, and it is
+   a valid document.
+
+686 assertions against the independent Python characteriser: exact paragraph,
+run, table, cell, section and numbered-paragraph counts, and SHA-256 text
+hashes. Round-trip: **40/40 byte-identical untouched, 35/35 single-edit
+isolated**, re-validated by Python's `zipfile` and `ElementTree`.
+
+### The writer bug worth remembering
+
+The unit of change is a **run's text region**, not a paragraph. The first version
+rebuilt the `<w:p>` from our model — and deleted an anchored full-page background
+image from a real VA document, while every gate stayed green: exactly one part
+had changed, and the edit really was in it. A paragraph contains more than its
+text (drawings, bookmarks, comment anchors, hyperlinks, content controls);
+rewriting at the run level means we never have to enumerate them.
+
+## The adversarial review — 15 defects in a 110/110 green suite
+
+A headless `claude -p` reviewer against a frozen snapshot, told to embarrass the
+work. Every finding carried a reproduction. The pattern in all of them: **the
+suite measured the thing it had thought of, on the case it had thought of.**
+
+- **A table row taller than the page was drawn off the paper.** 1,213 of 1,923
+  drawing instructions outside the MediaBox; the PDF stopped mid-sentence and
+  reported one page. The file's own comment said "silently loses is the one
+  failure this project does not ship". Rows split across pages now.
+- **U+00AD made the screen and the PDF spell DIFFERENT WORDS** — "cooperative"
+  on screen, "co-operative" on the page. WinAnsiEncoding maps the soft hyphen
+  onto the ordinary hyphen; the browser draws nothing. It is a conditional
+  hyphen now: no width, no glyph, a break opportunity, and a real hyphen only if
+  the line breaks there. This was the direct counter-example to the central
+  claim, and it was found by a reviewer, not by us.
+- **Deleting a paragraph left an empty one behind.** `Graph.set(id, '')` never
+  removes a node from the map, so every delete path injected a blank line — and
+  the document changed shape AGAIN on reload, because `docfile` drops exactly
+  those nodes. `blockIds` now uses the same liveness test the file format uses.
+- Justified lines never reached the margin (up to 1.06 inch short): the gaps were
+  counted one way and stretched another. One definition now, read twice.
+- Find and replace skipped table cells and reported success.
+- Enter threw inside a table cell; typing over a selection there appended.
+- The "cannot print" warning fired on every document using a live figure and
+  stayed silent on Cyrillic in a field's value or in a header. It reads the
+  LAID-OUT PAGES now — what will actually be printed.
+- 169 ms per keystroke at 58 pages → about 30 ms.
+- One Ctrl+Z wiped two separate bursts of typing.
+
+## Two platform bugs Doc uncovered, both pre-existing
+
+1. **Three apps declare Mod+B and the last one registered silently owned it.** So
+   Ctrl+B in Sheet had been running Deck's command against a pane that was not on
+   screen. The keymap is scoped to the focused app now, derived from which app
+   defined which command, and a genuine collision warns.
+2. **`Graph.setMeta` changed the document and told nobody.** Meta does not
+   participate in recalculation, so no change was emitted. Sheet and Deck never
+   noticed because every command ends in a full repaint from the shell — luck,
+   not design. The first thing to depend on the notification (Doc's
+   per-paragraph line cache) rendered a bulleted item with no bullet and no
+   indent, ON THE LIVE SITE, with the correct data sitting in the node. Found by
+   looking at a screenshot after every gate was green.
+
+## And one more found the same way, on a real government template
+
+A run boundary is not a place to break a line. Word splits runs wherever it
+likes, so "Institutional" arrives as "I" + "nstitutional" — and a VA meeting
+minutes template rendered its title as "VA Facility I / nstitutional Biosafety
+Committee". Line breaking works in UNITS now: consecutive pieces with no break
+opportunity between them are one thing, whatever runs they came from.
+
+## Known limits, stated rather than discovered
+
+Three font families. Text outside WinAnsiEncoding is named before export rather
+than silently printed as question marks. Headers, footers, footnotes, comments,
+images and charts in a .docx are kept and written back untouched but not
+displayed, and the status bar says so on open. Inserted tables and charts are not
+written into .docx yet. An imported Word table is scaled to fit the page rather
+than auto-fitted the way Word does. Placement is still linear in document length
+— line breaking is cached per paragraph, pagination is not.
+
 
 ---
 

@@ -97,7 +97,12 @@ In order:
 1. **Board** (kanban) — cheapest next Grain app: cards are nodes, columns are ranges, WIP counts are formulas. Trello's free tier shrinks yearly. Third app shape = the real validation of the Grain extraction.
 2. **Note** — local-first linked notes on the .grain format. The Obsidian-adjacent audience IS the local-first crowd.
 3. **Form** — inverted by no-server: *generates a self-contained form file*; responses come back as files. Genuinely novel, needs design thought first.
-4. **Doc** — stays deferred per spec (year-one out-of-scope; rich text layout is enormous and least differentiated).
+4. ~~**Doc** — stays deferred per spec~~ — **SHIPPED 2026-08-22.** The deferral judged Doc
+   as a word processor competing with word processors. On the node graph it is not that: a
+   sentence can hold a formula, and a table or chart in the report is a dependent of a range.
+   Rich text layout really was enormous — a layout engine, a font-metrics table, a caret and
+   selection from nothing, and a PDF writer — but everything else was already built.
+   See PROJECT_SPEC.md for the full reversal.
 
 **Deepen-the-existing (doesn't grow the tally, grows the claim):** .pptx open/save for Deck · editable charts in Sheet · CSV import · functions 76 → ~120 · resize/formatting gaps.
 
