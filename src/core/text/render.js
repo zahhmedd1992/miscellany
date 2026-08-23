@@ -137,6 +137,18 @@ export function drawPaper(ctx, box, opts = {}) {
   }
 }
 
+/* In justified text a chunk is drawn WIDER than its natural width: the
+ * renderer distributes `spacing` across the chunk's spaces. Measuring with
+ * textWidth alone therefore puts the caret short of, or past, the glyph it
+ * belongs to - by exactly one space per space, which at 11pt Times is 2.75pt
+ * and is visible. `advance` is the width the chunk was actually painted at. */
+function advance(c, s) {
+  const face = faceOf(c.style.family, c.style.bold, c.style.italic);
+  const w = textWidth(face, s, c.style.size);
+  if (!c.sp) return w;
+  return w + (s.match(/ /g) || []).length * c.sp;
+}
+
 /** Where in a line's source text does an x coordinate fall? */
 export function offsetAtX(line, x) {
   let best = null;
@@ -156,12 +168,10 @@ export function offsetAtX(line, x) {
       }
       continue;
     }
-    const face = faceOf(c.style.family, c.style.bold, c.style.italic);
-    let acc = c.px;
     for (let i = 0; i <= c.text.length; i++) {
+      const acc = c.px + advance(c, c.text.slice(0, i));
       const d = Math.abs(x - acc);
       if (!best || d < best.d) best = { off: c.src + i, d };
-      if (i < c.text.length) acc += textWidth(face, c.text[i], c.style.size);
     }
   }
   return best ? best.off : 0;
@@ -176,8 +186,7 @@ export function xAtOffset(line, off) {
     if (off < c.src) continue;
     if (off > end) { last = c.px + (c.pw || 0); continue; }
     if (c.atomic || c.tab) return off >= end ? c.px + (c.pw || 0) : c.px;
-    const face = faceOf(c.style.family, c.style.bold, c.style.italic);
-    return c.px + textWidth(face, c.text.slice(0, off - c.src), c.style.size);
+    return c.px + advance(c, c.text.slice(0, off - c.src));
   }
   return last;
 }

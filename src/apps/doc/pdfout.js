@@ -44,8 +44,9 @@ export function renderPdf(view, meta = {}) {
       fonts: reg.names(),
     });
   }
-  /* The registry is shared, so a font first used on page 9 is still in page
-   * 1's resource dictionary. Harmless, and cheaper than a second pass. */
+  /* reg.names() is read INSIDE the loop, so each page declares the faces
+   * registered up to and including itself. That is what a page needs; a face
+   * first used later is not in an earlier page's resources and should not be. */
   return buildDocument(out, meta);
 }
 

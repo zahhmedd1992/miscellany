@@ -18,9 +18,15 @@
  * (font, character) pairs the two sources agree on 2,579. The 37 that differ
  * are five rare glyphs - macron, plusminus, mu, periodcentered, divide -
  * where Microsoft redrew the character wider or narrower than Adobe. We use
- * the AFM value, because that is the number a PDF reader will use, and the
- * residue is under half a pixel of slack around five characters at reading
- * size. Regenerate with tools/gen/make_metrics.py + emit_metrics.py.
+ * the AFM value, because that is the number a PDF reader will use. MEASURED
+ * against what a browser actually paints at 11pt, the residue on those five
+ * is up to 2.4pt - macron is the worst; plusminus, mu, periodcentered and
+ * divide are each under 1pt. It is a fraction of one glyph's width on
+ * characters that appear once in a document, and it is confined to the
+ * SCREEN: the PDF carries these same numbers as its /Widths, so the printed
+ * page is unaffected either way. (An earlier version of this comment claimed
+ * "under half a pixel", which was wrong by about six times.)
+ * Regenerate with tools/gen/make_metrics.py + emit_metrics.py.
  *
  * DELIBERATE LIMIT, stated rather than discovered: WinAnsiEncoding covers
  * Latin-1 plus the usual typography (curly quotes, dashes, bullet, euro).
@@ -191,6 +197,13 @@ export const UNI_TO_WINANSI = new Map([
 /** The WinAnsi code for a character, or -1 if the encoding cannot hold it. */
 export function winAnsiCode(ch) {
   const cp = ch.codePointAt(0);
+  /* U+00AD SOFT HYPHEN is an instruction, not a glyph. WinAnsiEncoding maps
+   * it onto the ordinary hyphen, so encoding it PRINTS one - while the
+   * browser draws nothing - and the screen and the page end up spelling
+   * different words. -2 means "not a character to print, and not a character
+   * that is missing either". The layout engine handles it as a conditional
+   * break; see SHY in core/text/layout.js. */
+  if (cp === 0x00AD) return -2;
   if (cp >= 0x20 && cp <= 0x7E) return cp;
   const m = UNI_TO_WINANSI.get(cp);
   if (m !== undefined) return m;
@@ -229,6 +242,7 @@ export function stringWidth(face, s) {
   let total = 0;
   for (const ch of s) {
     const c = winAnsiCode(ch);
+    if (c === -2) continue;                       // an instruction, not a glyph
     total += c < 0 ? w[0x3F - 32] : (w[c - 32] || 0);
   }
   return total;
@@ -240,7 +254,7 @@ export const textWidth = (face, s, size) => (stringWidth(face, s) * size) / 1000
 /** Every character in `s` that a non-embedded base-14 font cannot print. */
 export function unprintable(s) {
   const bad = new Set();
-  for (const ch of s) if (winAnsiCode(ch) < 0) bad.add(ch);
+  for (const ch of s) if (winAnsiCode(ch) === -1) bad.add(ch);
   return [...bad];
 }
 

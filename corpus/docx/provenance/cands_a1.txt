@@ -1,0 +1,39 @@
+# --- journal / conference author templates ---
+ieee-a4 https://www.ieee.org/content/dam/ieee-org/ieee/web/org/conferences/conference-template-a4.docx
+ieee-letter https://www.ieee.org/content/dam/ieee-org/ieee/web/org/conferences/conference-template-letter.docx
+ieee-trans https://www.ieee.org/content/dam/ieee-org/ieee/web/org/pubs/transjour.docx
+acm-taps https://www.acm.org/binaries/content/assets/publications/taps/acm_submission_template.docx
+acm-interim https://www.acm.org/binaries/content/assets/publications/word_style/interim-template-style/interim-layout.docx
+mdpi-tpl https://res.mdpi.com/data/mdpi-template-word.docx
+mdpi-tpl2 https://www.mdpi.com/files/word-templates/microsoft-word-template.docx
+plos-sub https://journals.plos.org/plosone/s/file?id=ba62/PLOS-Submission.docx
+frontiers https://www.frontiersin.org/files/pdf/Frontiers_Word_Template.docx
+springer-word https://resource-cms.springernature.com/springer-cms/rest/v1/content/19242230/data/v3
+# --- EU Horizon Europe proposal templates (published as .docx) ---
+eu-he-ria https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/temp-form/af/af_he-ria-ia_en.docx
+eu-he-part https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/temp-form/af/af_he-msca-pf_en.docx
+eu-he-csa https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/temp-form/af/af_he-csa_en.docx
+# --- NIH / NSF ---
+nih-biosketch https://grants.nih.gov/sites/default/files/biosketch-blank-format-page.docx
+nih-biosketch2 https://grants.nih.gov/grants/forms/biosketch-blank-format-page.docx
+nih-nonfellow https://grants.nih.gov/sites/default/files/Biosketch-blank-format-page-non-fellowship.docx
+nsf-biosketch https://www.nsf.gov/bfa/dias/policy/biosketch/nsfbiosketch.docx
+# --- 3GPP: an entire standards body that ships Word ---
+3gpp-cr-form https://www.3gpp.org/ftp/Information/CR_Form/CR_Form_v12.2.docx
+3gpp-cr-form11 https://www.3gpp.org/ftp/Information/CR_Form/CR_Form_v11.2.docx
+3gpp-wid https://www.3gpp.org/ftp/Information/WI_Sheet/WID_Template.docx
+# --- WHO / World Bank / UN ---
+wb-docs https://thedocs.worldbank.org/en/doc/9b6d9d5a4c7b8e4b0f9d7c4d6a2e1f3a-0090012021/original/template.docx
+un-template https://www.un.org/development/desa/dspd/wp-content/uploads/sites/22/2020/04/template.docx
+# --- US federal agencies (drupal /sites/default/files/ pattern) ---
+fema-tmpl https://www.fema.gov/sites/default/files/documents/fema_bric-direct-technical-assistance_request-form.docx
+gsa-tmpl https://www.gsa.gov/system/files/Statement-of-Work-Template.docx
+dol-tmpl https://www.dol.gov/sites/dolgov/files/OWCP/dfec/regs/compliance/forms/CA-1.docx
+epa-tmpl https://www.epa.gov/system/files/documents/2022-03/qapp-template.docx
+doe-tmpl https://www.energy.gov/sites/default/files/2021/04/f43/QAPP-template.docx
+nasa-tmpl https://www.nasa.gov/wp-content/uploads/2023/01/template.docx
+hhs-tmpl https://www.hhs.gov/sites/default/files/template.docx
+nist-tmpl https://www.nist.gov/system/files/documents/2021/01/template.docx
+usda-tmpl https://www.usda.gov/sites/default/files/documents/template.docx
+# --- UK government ---
+ukgov-1 https://assets.publishing.service.gov.uk/media/5a7f5b2ce5274a2e87dba6a0/template.docx

@@ -20,7 +20,8 @@
  * an input pipe, never a document.
  */
 
-import { layout, DEFAULT_PAGE, pageBox, STYLES, paraProps } from '../../core/text/layout.js';
+import { layout, DEFAULT_PAGE, pageBox, STYLES, paraProps, SOFT_BREAK, countWords }
+  from '../../core/text/layout.js';
 import { drawPage, drawPaper, offsetAtX, xAtOffset, lineRange } from '../../core/text/render.js';
 import { drawChart } from '../sheet/chartview.js';
 /* Doc does not have its own chart renderer, and does not have its own idea of
@@ -29,8 +30,8 @@ import { drawChart } from '../sheet/chartview.js';
 import { chartSpecFor, liveResolver } from '../deck/deck.js';
 import {
   readBlocks, blockIds, paraOf, setPara, fieldResolver, pageSetup,
-  insertRuns, deleteRuns, packRuns, ownerOf, removeBlock,
-  keyBetween, bodyId, keyOf,
+  insertRuns, deleteRuns, packRuns, ownerOf, removeBlock, pruneFields,
+  keyBetween, bodyId, keyOf, isBodyId,
 } from './model.js';
 
 const PAGE_GAP = 22;
@@ -67,7 +68,20 @@ export class DocView {
      * three are the same event, which is the whole point of the node graph.
      * This handler only READS: writing from a change listener re-enters
      * recalculation and the graph refuses it. */
-    this._off = this.doc.onChange(() => { this.dirty = true; this.draw(); });
+    /* Broken lines, kept between layouts and thrown away per node. The graph
+     * tells us exactly which nodes changed, so a keystroke invalidates one
+     * paragraph — including when what changed is a FIELD, whose owner is the
+     * paragraph that displays it. */
+    this._lineCache = new Map();
+    /* Note what changed and repaint. It does NOT lay out here: after() runs
+     * immediately afterwards for our own edits, and laying out in both places
+     * did the whole document twice per keystroke. draw() lays out if it still
+     * needs to, which covers a change that came from another pane. */
+    this._off = this.doc.onChange((ids) => {
+      for (const id of ids || []) this.invalidate(id);
+      this.dirty = true;
+      if (!this._editing) this.draw();
+    });
 
     this._blink = setInterval(() => {
       if (document.activeElement !== this.input) return;
@@ -79,6 +93,13 @@ export class DocView {
     this._bindMouse();
     this._bindInput();
     this.relayout();
+  }
+
+  /** Drop the cached line breaking for a node and whatever contains it. */
+  invalidate(id) {
+    this._lineCache.delete(id);
+    const owner = ownerOf(id);
+    if (owner && owner !== id) this._lineCache.delete(owner);
   }
 
   dispose() {
@@ -96,7 +117,12 @@ export class DocView {
     const page = { ...DEFAULT_PAGE, ...pageSetup(this.doc) };
     this.pageSpec = page;
     this.box = pageBox(page);
-    const out = layout(this.blocks, page, { resolve: fieldResolver(this.doc) });
+    const out = layout(this.blocks, page,
+      { resolve: fieldResolver(this.doc), cache: this._lineCache });
+    /* Counted here, once. Both the pane header and the status bar want it,
+     * and walking every paragraph twice more per keystroke is most of what a
+     * long document costs. */
+    this.counts = countWords(this.blocks);
     this.pages = out.pages;
     this.content = out.content;
     this.dirty = false;
@@ -476,14 +502,32 @@ export class DocView {
    * Every one of these runs inside host.batch(), so a burst of changes is a
    * single undo step and a single repaint. */
 
+  /** Run an edit with the repaint suppressed until it is finished. */
+  edit(fn) {
+    this._editing = true;
+    try { return fn(); } finally { this._editing = false; }
+  }
+
   insertText(s) {
     const text = String(s).replace(/\r\n?/g, '\n');
     /* One undo step per RUN of typing, not per keystroke. The key is the
      * paragraph, so Enter, a click, or any other command ends the run - which
      * is exactly where a person expects Ctrl+Z to stop. A paste that contains
      * a line break is never merged: it is one deliberate act either way. */
-    const key = text.indexOf('\n') >= 0 || !this.caret
-      ? null : 'type:' + this.caret.id;
+    /* The undo run ends when the caret MOVED for a reason other than the
+     * typing itself. Keying on the paragraph alone meant clicking somewhere
+     * else in the same paragraph and typing again merged both bursts into one
+     * step, so a single Ctrl+Z wiped work the person had put in twice. */
+    const contiguous = this._typedAt && this.caret &&
+      this._typedAt.id === this.caret.id && this._typedAt.off === this.caret.off;
+    /* A fresh run gets a fresh key. Deriving the key from the caret POSITION
+     * looked right and was not: type a sentence, click back to the start of
+     * the same paragraph, type again, and both runs are keyed on offset 0 —
+     * so one Ctrl+Z wiped both. A counter cannot collide with itself. */
+    if (!contiguous) this._typeRun = (this._typeRun || 0) + 1;
+    const key = text.indexOf('\n') >= 0 || !this.caret ? null : 'type:' + this._typeRun;
+    this._typeKey = key;
+    this._editing = true;
     this.host.batch(() => {
       if (!this.collapsed()) this.deleteSelection();
       if (!this.caret) return;
@@ -493,6 +537,8 @@ export class DocView {
         if (parts[i]) this.insertAtCaret(parts[i]);
       }
     }, key);
+    this._editing = false;
+    this._typedAt = this.caret ? { ...this.caret } : null;
     this.after();
   }
 
@@ -506,10 +552,27 @@ export class DocView {
     this.pending = null;
   }
 
-  /** Enter: cut the paragraph in two, with its formatting following the text. */
+  /** Is the caret inside a table cell rather than in the body? */
+  inCell() { return !!this.caret && !isBodyId(this.caret.id); }
+
+  /**
+   * Enter: cut the paragraph in two, with its formatting following the text.
+   *
+   * INSIDE A TABLE CELL there is no paragraph to cut in two - a cell is one
+   * node, and its id is not a fractional key, so asking for a key between it
+   * and its neighbour threw and Enter did nothing at all except log an
+   * exception. Inside a cell, Enter is a line break, which is what a person
+   * filling in a table wants from it anyway.
+   */
   splitParagraph() {
     const { id, off } = this.caret;
     const p = paraOf(this.doc, id);
+    if (this.inCell()) {
+      const text = p.text.slice(0, off) + SOFT_BREAK + p.text.slice(off);
+      setPara(this.doc, id, text, packRuns(insertRuns(p.runs, off, 1), text.length), p.p);
+      this.caret = { id, off: off + 1 };
+      return;
+    }
     const order = blockIds(this.doc);
     const i = order.indexOf(id);
     const a = keyOf(id);
@@ -538,15 +601,33 @@ export class DocView {
   deleteSelection() {
     const sel = this.selectionRange();
     if (!sel || sel.empty) return;
+
+    /* A selection inside ONE paragraph is handled by id, without needing that
+     * paragraph to be a top-level block. `this.blocks` holds body blocks only,
+     * so looking a table cell up in it returned -1 and this function returned
+     * silently - the selection was drawn on screen, and typing over it
+     * appended instead of replacing. */
+    if (sel.from.id === sel.to.id) {
+      const p = paraOf(this.doc, sel.from.id);
+      const text = p.text.slice(0, sel.fromOff) + p.text.slice(sel.toOff);
+      const runs = packRuns(deleteRuns(p.runs, sel.fromOff, sel.toOff), text.length);
+      pruneFields(this.doc, sel.from.id, p.runs, runs);
+      setPara(this.doc, sel.from.id, text, runs, p.p);
+      this.caret = { id: sel.from.id, off: sel.fromOff };
+      this.anchor = null;
+      return;
+    }
+
     const fromI = this.blocks.findIndex((b) => b.id === sel.from.id);
     const toI = this.blocks.findIndex((b) => b.id === sel.to.id);
-    if (fromI < 0 || toI < 0) return;
+    if (fromI < 0 || toI < 0) { this.anchor = null; return; }
 
     if (fromI === toI) {
       const p = paraOf(this.doc, sel.from.id);
       const text = p.text.slice(0, sel.fromOff) + p.text.slice(sel.toOff);
-      setPara(this.doc, sel.from.id, text,
-        packRuns(deleteRuns(p.runs, sel.fromOff, sel.toOff), text.length), p.p);
+      const runs = packRuns(deleteRuns(p.runs, sel.fromOff, sel.toOff), text.length);
+      pruneFields(this.doc, sel.from.id, p.runs, runs);
+      setPara(this.doc, sel.from.id, text, runs, p.p);
       this.caret = { id: sel.from.id, off: sel.fromOff };
       this.anchor = null;
       return;
@@ -567,14 +648,16 @@ export class DocView {
 
   backspace() {
     const key = 'del:' + (this.caret ? this.caret.id : '');
+    this._editing = true;
     this.host.batch(() => {
       if (!this.collapsed()) { this.deleteSelection(); return; }
       const { id, off } = this.caret;
       const p = paraOf(this.doc, id);
       if (off > 0) {
         const text = p.text.slice(0, off - 1) + p.text.slice(off);
-        setPara(this.doc, id, text,
-          packRuns(deleteRuns(p.runs, off - 1, off), text.length), p.p);
+        const runs = packRuns(deleteRuns(p.runs, off - 1, off), text.length);
+        pruneFields(this.doc, id, p.runs, runs);
+        setPara(this.doc, id, text, runs, p.p);
         this.caret = { id, off: off - 1 };
         return;
       }
@@ -606,17 +689,21 @@ export class DocView {
       removeBlock(this.doc, id);
       this.caret = { id: prevId, off: pp.text.length };
     }, key);
+    this._editing = false;
     this.after();
   }
 
   forwardDelete() {
+    this._editing = true;
     this.host.batch(() => {
       if (!this.collapsed()) { this.deleteSelection(); return; }
       const { id, off } = this.caret;
       const p = paraOf(this.doc, id);
       if (off < p.text.length) {
         const text = p.text.slice(0, off) + p.text.slice(off + 1);
-        setPara(this.doc, id, text, packRuns(deleteRuns(p.runs, off, off + 1), text.length), p.p);
+        const runs = packRuns(deleteRuns(p.runs, off, off + 1), text.length);
+        pruneFields(this.doc, id, p.runs, runs);
+        setPara(this.doc, id, text, runs, p.p);
         return;
       }
       const order = blockIds(this.doc);
@@ -630,14 +717,24 @@ export class DocView {
       setPara(this.doc, id, text, packRuns([...p.runs, ...np.runs], text.length), p.p);
       removeBlock(this.doc, nextId);
     });
+    this._editing = false;
     this.after();
   }
 
+  /**
+   * Finish an edit: one layout, one paint.
+   *
+   * `_editing` keeps the change listener from painting in the middle of the
+   * batch — otherwise every keystroke laid the document out twice, and at 58
+   * pages that was the difference between 42ms and 84ms per character.
+   */
   after() {
+    if (this.caret) this.invalidate(this.caret.id);
     this.dirty = true;
     this.relayout();
     this.scrollCaretIntoView();
-    this.draw();
+    // host.refresh() draws every surface and then the status bar; drawing
+    // here as well laid the page out and painted it twice per keystroke.
     this.host.refresh();
   }
 
@@ -762,10 +859,37 @@ export class DocView {
    * across two lines is one phrase in the document, and a search that works
    * on lines silently cannot find it. */
 
+  /**
+   * Every paragraph in the document, INCLUDING the ones inside table cells.
+   *
+   * `this.blocks` is the top level only, so search and replace used to walk
+   * straight past a table: two occurrences left behind, the status bar
+   * reporting a successful replacement, and Find unable to locate them either
+   * - so there was no way to discover the miss from inside the app.
+   */
+  allParagraphs() {
+    const out = [];
+    for (const b of this.blocks) {
+      if (b.kind === 'para') { out.push({ id: b.id, text: b.text }); continue; }
+      if (b.kind !== 'table') continue;
+      for (const row of b.rows || []) {
+        for (const cell of row) {
+          for (const inner of cell.blocks || []) {
+            // a live table's cells are computed, not editable
+            if (inner.id && !String(inner.id).includes('/v')) {
+              out.push({ id: inner.id, text: inner.text || '' });
+            }
+          }
+        }
+      }
+    }
+    return out;
+  }
+
   findNext(needle) {
     if (!needle) return false;
     const n = needle.toLowerCase();
-    const paras = this.blocks.filter((b) => b.kind === 'para');
+    const paras = this.allParagraphs();
     if (!paras.length) return false;
     const startIdx = Math.max(0, paras.findIndex((b) => b.id === (this.caret && this.caret.id)));
     const startOff = this.caret ? this.caret.off : 0;
@@ -790,8 +914,7 @@ export class DocView {
     let count = 0;
     const rep = replacement || '';
     this.host.batch(() => {
-      for (const b of this.blocks) {
-        if (b.kind !== 'para') continue;
+      for (const b of this.allParagraphs()) {
         const p = paraOf(this.doc, b.id);
         let text = p.text;
         let runs = p.runs;

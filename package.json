@@ -1,16 +1,17 @@
 {
   "name": "miscellany",
   "version": "0.1.0",
-  "description": "Free, modular software that composes: a spreadsheet and a slide deck sharing one document. Zero dependencies.",
+  "description": "Free, modular software that composes: a spreadsheet, a slide deck and a word processor sharing one document. Zero dependencies.",
   "license": "MPL-2.0",
   "type": "module",
   "scripts": {
-    "test": "node test/core.test.mjs && node test/numfmt.test.mjs && node test/docfile.test.mjs && node test/layout.test.mjs && node test/clipboard.test.mjs && node test/stylewrite.test.mjs && node test/structural.test.mjs && node test/corpus.read.test.mjs && node test/corpus.roundtrip.test.mjs && node test/pdf.read.test.mjs",
-    "test:fast": "node test/core.test.mjs && node test/numfmt.test.mjs && node test/layout.test.mjs && node test/clipboard.test.mjs && node test/stylewrite.test.mjs && node test/structural.test.mjs",
+    "test": "node test/core.test.mjs && node test/numfmt.test.mjs && node test/docfile.test.mjs && node test/layout.test.mjs && node test/clipboard.test.mjs && node test/stylewrite.test.mjs && node test/structural.test.mjs && node test/doc.model.test.mjs && node test/doc.layout.test.mjs && node test/doc.redteam.test.mjs && node test/corpus.read.test.mjs && node test/corpus.roundtrip.test.mjs && node test/pdf.read.test.mjs && node test/docx.read.test.mjs && node test/docx.roundtrip.test.mjs",
+    "test:fast": "node test/core.test.mjs && node test/numfmt.test.mjs && node test/layout.test.mjs && node test/clipboard.test.mjs && node test/stylewrite.test.mjs && node test/structural.test.mjs && node test/doc.model.test.mjs && node test/doc.layout.test.mjs && node test/doc.redteam.test.mjs",
     "corpus": "python corpus/build_corpus.py",
     "licences": "node tools/check-licences.mjs",
     "serve": "python -m http.server 9195 --directory src",
-    "build": "node tools/build-site.mjs"
+    "build": "node tools/build-site.mjs",
+    "qa": "python qa/doc_smoke.py && python qa/doc_redteam_qa.py && python qa/doc_pdf_qa.py"
   },
   "dependencies": {},
   "devDependencies": {},
@@ -23,6 +24,9 @@
     "spreadsheet",
     "xlsx",
     "slides",
+    "word-processor",
+    "docx",
+    "pdf",
     "offline",
     "zero-dependency",
     "local-first"

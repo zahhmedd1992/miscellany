@@ -31,10 +31,15 @@ import { WIDTHS, familyOf } from '../text/metrics.js';
 
 const enc = new TextEncoder();
 
+/* PDF forbids exponent notation, and JS produces it eagerly — hence toFixed.
+ * The trailing-zero trim must only run on a number that HAS a fractional
+ * part: `(2e9).toFixed(4)` is "2000000000.0000", and stripping trailing zeros
+ * from that gives "2", which is a different number by a factor of a billion.
+ * Unreachable at page dimensions today; a landmine for whoever reuses this. */
 const num = (n) => {
   if (!Number.isFinite(n)) return '0';
-  if (Number.isInteger(n) && Math.abs(n) < 1e9) return String(n);
-  return n.toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
+  if (Number.isInteger(n)) return n.toFixed(0);
+  return n.toFixed(4).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
 };
 
 /* Font descriptors for the base-14 faces. A reader that already has the font

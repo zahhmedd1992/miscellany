@@ -1,0 +1,12 @@
+d2p-240-dop-1013a-lay-down-tubulars.docx https://raw.githubusercontent.com/ShayHill/docx2python/master/tests/resources/240-DOP-1013A%20Lay%20Down%20Tubulars.docx
+d2p-checked-boxes.docx https://raw.githubusercontent.com/ShayHill/docx2python/master/tests/resources/checked_boxes.docx
+d2p-comments.docx https://raw.githubusercontent.com/ShayHill/docx2python/master/tests/resources/comments.docx
+d2p-created-in-pages-bulleted-lists.docx https://raw.githubusercontent.com/ShayHill/docx2python/master/tests/resources/created-in-pages-bulleted-lists.docx
+d2p-created-in-pages-paragraphs-only.docx https://raw.githubusercontent.com/ShayHill/docx2python/master/tests/resources/created-in-pages-paragraphs-only.docx
+d2p-equations.docx https://raw.githubusercontent.com/ShayHill/docx2python/master/tests/resources/equations.docx
+d2p-example.docx https://raw.githubusercontent.com/ShayHill/docx2python/master/tests/resources/example.docx
+d2p-imagedata-without-rid.docx https://raw.githubusercontent.com/ShayHill/docx2python/master/tests/resources/imagedata_without_rid.docx
+d2p-libreoffice-conversion.docx https://raw.githubusercontent.com/ShayHill/docx2python/master/tests/resources/libreoffice_conversion.docx
+d2p-merged-cells.docx https://raw.githubusercontent.com/ShayHill/docx2python/master/tests/resources/merged_cells.docx
+d2p-nested-paragraphs.docx https://raw.githubusercontent.com/ShayHill/docx2python/master/tests/resources/nested_paragraphs.docx
+d2p-test-docx2python-conversion-google-docs.docx https://raw.githubusercontent.com/ShayHill/docx2python/master/tests/resources/test-docx2python-conversion-google_docs.docx

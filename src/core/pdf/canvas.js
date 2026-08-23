@@ -43,10 +43,15 @@ const mul = (m, n) => [
 const apply = (m, x, y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
 const scaleOf = (m) => Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2])) || 1;
 
+/* PDF forbids exponent notation, and JS produces it eagerly — hence toFixed.
+ * The trailing-zero trim must only run on a number that HAS a fractional
+ * part: `(2e9).toFixed(4)` is "2000000000.0000", and stripping trailing zeros
+ * from that gives "2", which is a different number by a factor of a billion.
+ * Unreachable at page dimensions today; a landmine for whoever reuses this. */
 const num = (n) => {
   if (!Number.isFinite(n)) return '0';
-  if (Number.isInteger(n) && Math.abs(n) < 1e9) return String(n);
-  const s = n.toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
+  if (Number.isInteger(n)) return n.toFixed(0);
+  const s = n.toFixed(4).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
   return s === '-0' ? '0' : s;
 };
 
@@ -345,11 +350,28 @@ export class PdfCanvas {
   /* ---- images ---------------------------------------------------------- */
 
   /**
-   * @param img an object prepared by core/pdf/image.js:
-   *            { name, width, height, ... } - not a DOM image
+   * @param img an image XObject: { name, width, height, bytes, ... }.
+   *
+   * A DOM image is not one, and cannot be: a PDF has to carry the pixels.
+   * Silently returning would put the image on screen and nothing at all on
+   * the page — the one thing this whole class exists to prevent — so an
+   * image we cannot embed is drawn as the SAME placeholder the screen falls
+   * back to, and the two surfaces still agree.
    */
   drawImage(img, x, y, w, h) {
-    if (!img || !img.name) return;
+    if (!img || !img.name) {
+      const W = w ?? 120, H = h ?? 90;
+      const fill = this._fill;
+      this._fill = '#F5F0E6';
+      this.fillRect(x, y, W, H);
+      this._fill = '#9A9384';
+      this.setFace('Helvetica', 9);
+      this.textBaseline = 'alphabetic';
+      this.fillText('image', x + 6, y + 14);
+      this._fill = fill;
+      this._emittedFill = null;
+      return;
+    }
     this.images.set(img.name, img);
     const W = w ?? img.width;
     const H = h ?? img.height;
@@ -381,6 +403,11 @@ export class PdfCanvas {
 /**
  * The fonts a document uses, and the /Widths that make its line breaks the
  * layout engine's line breaks rather than the reader's guess.
+ *
+ * One registry is shared by every page, so a face keeps one resource name
+ * across the document. Each page then declares the fonts registered up to
+ * and including itself — a font first used on page 9 is not in page 1's
+ * resource dictionary, and does not need to be.
  */
 export class FontRegistry {
   constructor() { this.used = new Map(); }     // base name -> resource name

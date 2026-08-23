@@ -1,0 +1,1 @@
+alfresco-googledoc.docx https://raw.githubusercontent.com/Alfresco/alfresco-community-share/master/alfresco-tas-share-test/testdata/googleDoc.docx

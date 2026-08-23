@@ -13,7 +13,9 @@
  *   app/            every app, byte-identical to src/
  *                     app/index.html    Sheet
  *                     app/deck.html     Deck
- *                     app/compose.html  both, over one document
+ *                     app/doc.html      Doc
+ *                     app/pdf.html      PDF
+ *                     app/compose.html  all three, over one document
  *   download/       one self-contained HTML file per tool — the whole app
  *                   and its whole source, in the same file
  */
@@ -42,6 +44,7 @@ const VERSION = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf
 const TOOLS = [
   { slug: 'sheet', title: 'Sheet', entry: 'index.html', noun: 'spreadsheet' },
   { slug: 'deck', title: 'Deck', entry: 'deck.html', noun: 'slide deck' },
+  { slug: 'doc', title: 'Doc', entry: 'doc.html', noun: 'word processor' },
   { slug: 'pdf', title: 'PDF', entry: 'pdf.html', noun: 'PDF page tool' },
   /* Single-file tools: authored as ONE html file in site/tool/, everything
    * inline. The served page, the download and the source are the same bytes,
@@ -53,9 +56,16 @@ const TOOLS = [
   { slug: 'loan', title: 'Loan', file: 'tool/loan.html', noun: 'amortization schedule' },
 ];
 
+/* Pre-edit snapshots live beside the file they back up — `compose (08.22.26)_v1.js`
+ * — and they are exactly the kind of thing that ships without anyone noticing:
+ * a stale copy of an app, served from the live site, indexed, and downloadable.
+ * They are ignored by git for the same reason; the build has to know too. */
+const VERSIONED = /\(\d\d\.\d\d\.\d\d\)_v\d+\./;
+
 function copyDir(from, to) {
   fs.mkdirSync(to, { recursive: true });
   for (const e of fs.readdirSync(from, { withFileTypes: true })) {
+    if (VERSIONED.test(e.name)) continue;
     const a = path.join(from, e.name), b = path.join(to, e.name);
     if (e.isDirectory()) copyDir(a, b);
     else fs.copyFileSync(a, b);
@@ -353,7 +363,9 @@ const bytes = files.reduce((a, f) => a + fs.statSync(f).size, 0);
 
 console.log('');
 console.log(`  dist/         ${files.length} files, ${(bytes / 1024).toFixed(0)} KB`);
-console.log(`  entry points  /index.html · /app/index.html · /app/deck.html · /app/compose.html`);
+console.log('  entry points  ' + ['/index.html',
+  ...TOOLS.filter((t) => t.entry).map((t) => `/app/${t.entry}`),
+  '/app/compose.html'].join(' · '));
 for (const b of builds) {
   console.log(`  download      /download/${b.name}  —  ${b.files} source files in 1, ${(b.bytes / 1024).toFixed(0)} KB`);
 }

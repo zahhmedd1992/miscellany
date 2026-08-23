@@ -178,8 +178,11 @@ whose real producer is pandoc.
 
 ### Not hit — with the exhaustion, so the gap is auditable
 
-**Drawing canvas (`<wpc:wpc>`) — 0 files.** Scanned every XML part of **147 files** (40 corpus +
-107 staging pool) for the element. Zero.
+**Drawing canvas (`<wpc:wpc>`) — 0 files.** Scanned every XML part of **147 files** — all 40
+corpus files plus a 107-file staging pool assembled from the repositories in §2 — for the
+element. Zero. The pool binaries were transient, but its URL manifests are kept in
+`corpus/docx/provenance/pool*.txt`, so the scan is re-runnable rather than a claim about a
+directory that no longer exists.
 
 This one comes with a trap worth more than the coverage would have been. The *string*
 `wordprocessingCanvas` appears in roughly 70 of those files — because **Word declares
@@ -234,8 +237,15 @@ Two files return zero. **They are neither.** There is a third case:
 
 - **`adv-header-footer-only`** — the body is one empty `<w:p/>` plus a `sectPr` referencing six
   header/footer parts. All 54 characters live in `word/header2.xml` and `word/footer2.xml`.
-- **`adv-wps-office`** — WPS Office wrote a document whose single run holds a `<w:object>`
-  wrapping an OLE embedding. Five `oleObject*.bin` parts, and no `<w:t>` anywhere in the package.
+- **`adv-wps-office`** — WPS Office wrote a document whose runs hold `<w:object>` elements
+  wrapping OLE embeddings: 9 objects across 10 embedding parts, and no `<w:t>` anywhere in the
+  package.
+
+**Both therefore share a `textSha256`** — `e3b0c44298fc1c14…`, the SHA-256 of the empty
+string. That is correct and unavoidable: two documents with no text have the same text. Gate G3
+checks *file* sha256, which are distinct, so nothing here is wrong. But a reader test that adds
+"every `textSha256` is unique" as a cheap sanity check will fail on exactly these two files, and
+whoever writes it will lose an hour. It is not a duplicate; it is an empty document.
 
 Both were confirmed by a **second, independent implementation** — a raw regex over the XML bytes,
 agreeing with the ElementTree count at 0. So the resolution was not to delete the files or fudge
@@ -452,3 +462,22 @@ python corpus/build_docx_corpus.py --publish         # regenerate ../CORPUS_DOCX
 can never silently move the goalposts by quietly pulling a newer upstream file underneath the
 numbers. That mode exists because the xlsx corpus needed it — the first characteriser there was
 wrong, and re-downloading to fix it would have changed the exam.
+
+### What a `MOVED` result from `--refetch` means, and the one real fragility
+
+All 40 verified identical on 2026-08-22. They will not stay that way. **20 of the Tier A files
+come from live `.gov` / `.edu` / `who.int` URLs that get republished without notice**, and a
+`MOVED` line does **not** mean the corpus is broken — it means upstream changed and the bytes on
+disk are now the only copy of what was graded.
+
+Because `corpus/docx/files/` is gitignored, that has a consequence worth stating plainly:
+**once any of those URLs rot, a fresh clone can no longer rebuild the full Tier A.** The lock
+still records exactly what was measured, and the reader test still asserts against it, but the
+files themselves would need to come from a machine that already has them. If this corpus is ever
+going to outlive its sources, the fix is to archive the 11.7 MB somewhere durable — not to
+re-fetch and re-lock, which would silently change the exam.
+
+`--verify-docs` deserves one caveat too. Its `PROSE_CLAIMS` table hardcodes the expected value of
+each number quoted in this report. That catches a lock/document mismatch, but the constant and
+the sentence are two copies of one fact: **if you change a `PROSE_CLAIMS` value, change the
+sentence it mirrors as well**, or the checker will pass while the prose is wrong.

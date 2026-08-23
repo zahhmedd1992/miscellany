@@ -212,10 +212,30 @@ export function setPageSetup(doc, patch) {
 
 /* ---- reading the document ------------------------------------------------ */
 
-/** Every body block id, in document order. */
+/** Is this node actually present, or has it been cleared? */
+export function isLive(node) {
+  return !!node && (node.raw !== '' || (node.meta !== null && node.meta !== undefined));
+}
+
+/**
+ * Every body block id, in document order.
+ *
+ * A node that has been cleared is NOT a block. Graph.set(id, '') never removes
+ * a node from the map - it only changes its input - so a deleted paragraph
+ * used to stay in the document as an EMPTY one. Every delete path went
+ * through it: backspacing into the previous paragraph, selecting three
+ * paragraphs and typing, deleting a table. The document grew a blank line
+ * where the deleted thing had been, in the editor and in the exported PDF,
+ * and then changed shape again on reload because docfile.serialise drops
+ * exactly these nodes when it writes the file.
+ *
+ * This is the same rule the file format uses, so what is on screen and what
+ * is on disk now agree, and undo still works because clearing a node is an
+ * ordinary journalled write.
+ */
 export function blockIds(doc) {
   const out = [];
-  for (const id of doc.nodes.keys()) if (isBodyId(id)) out.push(id);
+  for (const [id, node] of doc.nodes) if (isBodyId(id) && isLive(node)) out.push(id);
   // Ordering IS the sorted order of the keys. Sorting the whole id would work
   // too (the prefix is constant), but sorting the key alone says what is
   // meant and cannot be broken by a future change to the prefix.
@@ -227,8 +247,27 @@ export function blockIds(doc) {
 export function paraOf(doc, id) {
   const n = doc.node(id, true);
   const m = (n.meta && n.meta.para) || {};
-  return { id, text: n.raw || '', runs: m.runs || [{ n: (n.raw || '').length }], p: m.p || {} };
+  const text = n.raw || '';
+  /* When a paragraph has no stored run list, the default one is memoised on
+   * the node rather than built fresh. Layout caches its line breaking and
+   * checks the cache by OBJECT IDENTITY, so handing back a new array every
+   * call would mean such a paragraph could never hit the cache — and the
+   * document would be re-broken from scratch on every keystroke, which is
+   * precisely the cost the cache exists to remove. */
+  let runs = m.runs;
+  if (!runs) {
+    if (!n._runs || n._runsFor !== text) {
+      n._runs = [{ n: text.length }];
+      n._runsFor = text;
+    }
+    runs = n._runs;
+  }
+  return { id, text, runs, p: m.p || EMPTY_PROPS };
 }
+
+/* One shared object, so a paragraph with no properties compares equal to
+ * itself between layouts. */
+const EMPTY_PROPS = Object.freeze({});
 
 /**
  * Turn the document into the block list the layout engine eats.
@@ -347,6 +386,25 @@ export function fieldResolver(doc) {
 }
 
 /* ---- writing ------------------------------------------------------------- */
+
+/**
+ * Clear any field node this paragraph no longer refers to.
+ *
+ * A field is a node with a formula in it, so it sits in the dependency graph
+ * and is recalculated forever. Deleting the character that displayed it used
+ * to leave the node behind: invisible, still reading the sheet, still costing
+ * a recalculation, and still written into the saved file.
+ */
+export function pruneFields(doc, paraId, oldRuns, newRuns) {
+  const kept = new Set();
+  for (const r of newRuns || []) if (r.field) kept.add(r.field);
+  for (const r of oldRuns || []) {
+    if (r.field && !kept.has(r.field) && doc.nodes.has(r.field)) {
+      doc.set(r.field, '');
+      doc.setMeta(r.field, null);
+    }
+  }
+}
 
 /** Create or replace a paragraph. Meta is ALWAYS written, for two reasons. */
 export function setPara(doc, id, text, runs, p) {

@@ -1158,6 +1158,17 @@ def publish():
     w("`corpus/docx.json` is the lock and it *is* committed " + chr(0x2014)
       + " the script re-fetches and re-verifies every byte from it.")
     w("")
+    w("> **What a `MOVED` line from `--refetch` means.** All " + str(d["counts"]["total"])
+      + " verified identical on " + d["locked"] + ". They will not stay that way: "
+      + str(len(A)) + " Tier A files come from live")
+    w("> `.gov` / `.edu` / `who.int` URLs that get republished without notice. `MOVED` does **not**")
+    w("> mean the corpus is broken " + chr(0x2014) + " it means upstream changed and the bytes on "
+      "disk are now the only")
+    w("> copy of what was graded. Because `corpus/docx/files/` is gitignored, **once one of those")
+    w("> URLs rots a fresh clone can no longer rebuild the full Tier A.** The fix is to archive the")
+    w("> " + f"{total_mb:.1f}" + " MB somewhere durable " + chr(0x2014) + " never to re-fetch and "
+      "re-lock, which would silently change the exam.")
+    w("")
     w("## The gate")
     w("")
     w("| Tier | What it proves | Pass condition |")
@@ -1284,6 +1295,10 @@ def publish():
 #
 # It is not hypothetical: the first draft of that table had ~30 invented cells
 # and a fact attached to the wrong file. This is what caught it.
+# Each entry MIRRORS a specific sentence in DOCX_CORPUS_REPORT.md. The constant and
+# the sentence are two copies of one fact and only the constant is checked, so if you
+# change a value here you must change the sentence it mirrors too — otherwise this
+# checker passes while the prose is wrong.
 PROSE_CLAIMS = [
     ("total files", lambda d, F: d["counts"]["total"], 40),
     ("Tier A", lambda d, F: d["counts"]["tierA"], 20),

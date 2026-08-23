@@ -275,8 +275,11 @@ t('word count counts words',
   countWords([para('one two three'), para('four')]).words, 4);
 t('word count ignores a field placeholder',
   countWords([{ kind: 'para', text: 'a ￼ b', runs: [], p: {} }]).words, 2);
+/* unprintableIn now reads the LAID-OUT PAGES, not the block text — see the
+ * note on the function. The old form asked a different question and answered
+ * it wrongly in both directions. */
 t('unprintableIn finds what the fonts cannot print',
-  unprintableIn([para('fine'), para('中文')]).length, 2);
+  unprintableIn(layout([para('fine'), para('中文')], DEFAULT_PAGE)).length, 2);
 
 /* ---- the PDF ------------------------------------------------------------- */
 

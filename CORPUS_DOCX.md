@@ -19,6 +19,13 @@ python corpus/build_docx_corpus.py --recharacterise  # re-measure from disk, has
 The files themselves are **not committed** (`corpus/docx/files/` is gitignored).
 `corpus/docx.json` is the lock and it *is* committed — the script re-fetches and re-verifies every byte from it.
 
+> **What a `MOVED` line from `--refetch` means.** All 40 verified identical on 2026-08-22. They will not stay that way: 20 Tier A files come from live
+> `.gov` / `.edu` / `who.int` URLs that get republished without notice. `MOVED` does **not**
+> mean the corpus is broken — it means upstream changed and the bytes on disk are now the only
+> copy of what was graded. Because `corpus/docx/files/` is gitignored, **once one of those
+> URLs rots a fresh clone can no longer rebuild the full Tier A.** The fix is to archive the
+> 11.7 MB somewhere durable — never to re-fetch and re-lock, which would silently change the exam.
+
 ## The gate
 
 | Tier | What it proves | Pass condition |

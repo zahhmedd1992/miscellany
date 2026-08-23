@@ -27,6 +27,7 @@ import { STYLES, STYLE_LABELS, PAGE_SIZES, countWords, unprintableIn, paraProps 
   from '../../core/text/layout.js';
 import { FAMILIES } from '../../core/text/metrics.js';
 import { exportPdf } from './pdfout.js';
+import { loadDocx, saveToDocx, surveyNote } from './docxio.js';
 import {
   paraOf, setPara, blockIds, insertPara, insertBlock, removeBlock, formatRuns,
   formatAcross, packRuns, insertRuns, fieldId, nextFieldNumber, catsId,
@@ -47,14 +48,15 @@ export const DocApp = {
   profiles: {
     simple: {
       name: 'Simple mode',
-      toolbar: ['file.save.doc', 'doc.export.pdf', 'edit.undo', 'edit.redo',
+      toolbar: ['doc.open.docx', 'doc.save.docx', 'doc.export.pdf', 'edit.undo', 'edit.redo',
                 'doc.style.pick', 'doc.bold', 'doc.italic', 'doc.underline',
                 'doc.list.bullet', 'doc.list.number',
                 'doc.align.left', 'doc.align.center', 'doc.field'],
     },
     full: {
       name: 'Everything',
-      toolbar: ['file.new', 'file.open.doc', 'file.save.doc', 'doc.export.pdf', 'doc.print',
+      toolbar: ['file.new', 'doc.open.docx', 'doc.save.docx',
+                'file.open.doc', 'file.save.doc', 'doc.export.pdf', 'doc.print',
                 'edit.undo', 'edit.redo', 'doc.find',
                 'doc.style.pick', 'doc.font', 'doc.bigger', 'doc.smaller',
                 'doc.bold', 'doc.italic', 'doc.underline', 'doc.strike',
@@ -140,12 +142,65 @@ export const DocApp = {
 
     shell
       /* ---- file ---- */
+      .define('doc.open.docx', {
+        title: 'Open .docx', group: 'File', glyph: '⌂', key: 'Mod+O',
+        needs: ['doc.write', 'fs'], undoable: false,
+        describe: 'Open a Word document. It is read in this browser tab and never uploaded.',
+        run: (a, ctx) => {
+          const v = view(ctx); if (!v) return;
+          pickFile('.docx', async (file) => {
+            try {
+              const bytes = new Uint8Array(await file.arrayBuffer());
+              ctx.shell.undoStack.length = 0;
+              ctx.shell.redoStack.length = 0;
+              v.docx = await loadDocx(ctx.doc, bytes);
+              ctx.shell.docName = file.name.replace(/\.docx$/i, '');
+              if (ctx.shell.nameInput) ctx.shell.nameInput.value = ctx.shell.docName;
+              /* The file on disk IS the document now, so the shell must stop
+               * autosaving a copy of it into browser storage — that is both
+               * wrong and, for a real document, impossible. */
+              ctx.shell.setAutosave(false);
+              v.caret = null;
+              v.anchor = null;
+              v.dirty = true;
+              v.relayout();
+              v.draw();
+              const note = surveyNote(v.docx.survey);
+              ctx.shell.setStatusNote(
+                `opened ${v.docx.body.blocks.length} blocks from ${v.docx.survey.parts} parts` +
+                (note ? ` · ${note}` : ''), true);
+            } catch (e) {
+              ctx.shell.setStatusNote('could not open: ' + e.message, false);
+            }
+          });
+        },
+      })
+      .define('doc.save.docx', {
+        title: 'Save .docx', group: 'File', glyph: '⬇', key: 'Mod+S',
+        needs: ['doc.read', 'fs'],
+        describe: 'Save back to Word format. Everything we did not touch comes back byte for byte.',
+        run: async (a, ctx) => {
+          const v = view(ctx); if (!v) return;
+          if (!v.docx) { ctx.shell.run('file.save.doc'); return; }
+          try {
+            const r = await saveToDocx(ctx.doc, v.docx);
+            download(r.bytes, (ctx.shell.docName || 'document') + '.docx',
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+            ctx.shell.setStatusNote(
+              `saved · ${r.edits} change${r.edits === 1 ? '' : 's'} spliced into the original` +
+              (r.notes.length ? ` · ${r.notes[0]}` : ''), r.notes.length === 0);
+          } catch (e) {
+            ctx.shell.setStatusNote('could not save: ' + e.message, false);
+          }
+        },
+      })
       .define('doc.export.pdf', {
         title: 'PDF', group: 'File', glyph: '⎙', needs: ['doc.read', 'fs'],
         describe: 'Save this document as a PDF. The page breaks where you see it break.',
         run: (a, ctx) => {
           const v = view(ctx); if (!v) return;
-          const bad = unprintableIn(v.blocks);
+          // what will be PRINTED, not what is stored: see unprintableIn
+          const bad = unprintableIn({ pages: v.pages });
           const r = exportPdf(v, ctx.shell.docName || 'document');
           ctx.shell.setStatusNote(
             `PDF: ${r.pages} page${r.pages === 1 ? '' : 's'}, ${(r.bytes / 1024).toFixed(0)} KB` +
@@ -480,7 +535,7 @@ export const DocApp = {
         describe: 'Count the words, characters and paragraphs in this document.',
         run: (a, ctx) => {
           const v = view(ctx); if (!v) return;
-          const c = countWords(v.blocks);
+          const c = countWords(v.blocks);   // asked for explicitly, so counted fresh
           alert(`${c.words.toLocaleString()} words\n${c.chars.toLocaleString()} characters\n` +
                 `${c.paras.toLocaleString()} paragraphs\n${v.pages.length} pages`);
         },
@@ -649,7 +704,7 @@ export const DocApp = {
       view,
       draw() {
         view.draw();
-        const c = countWords(view.blocks);
+        const c = view.counts || { words: 0 };
         chip.textContent = `${view.pages.length} page${view.pages.length === 1 ? '' : 's'} · ` +
           `${c.words.toLocaleString()} words`;
       },
@@ -675,7 +730,7 @@ export const DocApp = {
       clipboard() { /* handled by the real clipboard events above */ },
       status() {
         const out = [];
-        const c = countWords(view.blocks);
+        const c = view.counts || { words: 0 };
         out.push(`<b>${view.pages.length}</b> page${view.pages.length === 1 ? '' : 's'}`);
         out.push(`${c.words.toLocaleString()} words`);
         if (view.caret) {
@@ -697,6 +752,31 @@ export const DocApp = {
     };
   },
 };
+
+/** A file picker that exists only while it is needed. */
+function pickFile(accept, then) {
+  const input = el('input');
+  input.type = 'file';
+  input.accept = accept;
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  input.addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    input.remove();
+    if (f) then(f);
+  });
+  input.click();
+}
+
+/** Hand bytes to the browser as a download. */
+function download(bytes, name, mime) {
+  const blob = new Blob([bytes], { type: mime });
+  const a = el('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 20000);
+}
 
 /* A small chooser, used where a colour picker would be used for a colour.
  * The shell owns the colour picker because two apps needed it; this one is

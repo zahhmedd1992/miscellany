@@ -1,0 +1,17 @@
+d2p-googledocs.docx https://raw.githubusercontent.com/ShayHill/docx2python/main/tests/resources/test-docx2python-conversion-google_docs.docx
+d2p-pages-bullets.docx https://raw.githubusercontent.com/ShayHill/docx2python/main/tests/resources/created-in-pages-bulleted-lists.docx
+d2p-pages-paras.docx https://raw.githubusercontent.com/ShayHill/docx2python/main/tests/resources/created-in-pages-paragraphs-only.docx
+d2p-libreoffice.docx https://raw.githubusercontent.com/ShayHill/docx2python/main/tests/resources/libreoffice_conversion.docx
+d2p-merged-cells.docx https://raw.githubusercontent.com/ShayHill/docx2python/main/tests/resources/merged_cells.docx
+d2p-equations.docx https://raw.githubusercontent.com/ShayHill/docx2python/main/tests/resources/equations.docx
+d2p-checked-boxes.docx https://raw.githubusercontent.com/ShayHill/docx2python/main/tests/resources/checked_boxes.docx
+d2p-comments.docx https://raw.githubusercontent.com/ShayHill/docx2python/main/tests/resources/comments.docx
+d2p-hyperlink.docx https://raw.githubusercontent.com/ShayHill/docx2python/main/tests/resources/hyperlink.docx
+d2p-nested-paras.docx https://raw.githubusercontent.com/ShayHill/docx2python/main/tests/resources/nested_paragraphs.docx
+d2p-example.docx https://raw.githubusercontent.com/ShayHill/docx2python/main/tests/resources/example.docx
+d2p-imagedata-norid.docx https://raw.githubusercontent.com/ShayHill/docx2python/main/tests/resources/imagedata_without_rid.docx
+d2p-tubulars.docx https://raw.githubusercontent.com/ShayHill/docx2python/main/tests/resources/240-DOP-1013A%20Lay%20Down%20Tubulars.docx
+dt-cyrillic.docx https://raw.githubusercontent.com/open-xml-templating/docxtemplater/master/examples/cyrillic.docx
+dt-hebrew.docx https://raw.githubusercontent.com/open-xml-templating/docxtemplater/master/examples/expected-loop-hebrew.docx
+dt-angular.docx https://raw.githubusercontent.com/open-xml-templating/docxtemplater/master/examples/angular-example.docx
+dt-coverpage.docx https://raw.githubusercontent.com/open-xml-templating/docxtemplater/master/examples/cover-page-data.docx
