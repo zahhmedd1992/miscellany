@@ -183,6 +183,23 @@ def main():
           return {full, afterOneUndo: doc.raw(id)};
         })()"""), "{'full': 'XXDear Ms Whitfield,', 'afterOneUndo': 'Dear Ms Whitfield,'}")
 
+        # ---- 10b. deleting coalesces the same way typing does --------------
+        t("moving the caret ends the DELETE run too", ev("""(async()=>{
+          const M = await import('./apps/doc/model.js');
+          const {doc, shell} = miscellany; const v = miscellany.view;
+          shell.run('file.new'); v.relayout();
+          const id = M.blockIds(doc)[0];
+          v.caret = {id, off: 0}; v.anchor = null;
+          v.insertText('ABCDEFGHIJ');
+          v.caret = {id, off: 10};
+          for (let i=0;i<3;i++) v.backspace();      // first run of deletes
+          v.caret = {id, off: 3};                    // a click, same paragraph
+          for (let i=0;i<3;i++) v.backspace();      // second run
+          const full = doc.raw(id);
+          shell.run('edit.undo');
+          return {full, afterOneUndo: doc.raw(id)};
+        })()"""), "{'full': 'DEFG', 'afterOneUndo': 'ABCDEFG'}")
+
         # ---- 9. typing must not cost the whole document -------------------
         perf = ev("""(async()=>{
           const M = await import('./apps/doc/model.js');

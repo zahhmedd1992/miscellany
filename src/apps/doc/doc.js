@@ -539,6 +539,7 @@ export class DocView {
     }, key);
     this._editing = false;
     this._typedAt = this.caret ? { ...this.caret } : null;
+    this._deletedAt = null;        // deleting after typing is a new run
     this.after();
   }
 
@@ -647,7 +648,16 @@ export class DocView {
   }
 
   backspace() {
-    const key = 'del:' + (this.caret ? this.caret.id : '');
+    /* Deleting coalesces the same way typing does, and for the same reason:
+     * a key derived from the POSITION lets two separate runs collide on one
+     * value, so holding Backspace, clicking elsewhere in the paragraph, and
+     * holding it again would let one Ctrl+Z take both. The typing path was
+     * fixed after a reviewer found it there; this one is the same shape and
+     * was not tested, which is exactly why it is worth fixing now. */
+    const contiguous = this._deletedAt && this.caret &&
+      this._deletedAt.id === this.caret.id && this._deletedAt.off === this.caret.off;
+    if (!contiguous) this._delRun = (this._delRun || 0) + 1;
+    const key = 'del:' + this._delRun;
     this._editing = true;
     this.host.batch(() => {
       if (!this.collapsed()) { this.deleteSelection(); return; }
@@ -690,6 +700,8 @@ export class DocView {
       this.caret = { id: prevId, off: pp.text.length };
     }, key);
     this._editing = false;
+    this._deletedAt = this.caret ? { ...this.caret } : null;
+    this._typedAt = null;          // typing after deleting is a new run
     this.after();
   }
 
